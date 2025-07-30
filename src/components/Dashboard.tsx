@@ -132,7 +132,11 @@ export const Dashboard = () => {
               <Brain className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Fractionl.ai</h1>
+              <img 
+                src="/lovable-uploads/30f9efde-5245-4c24-b26e-1e368f4a5a1b.png" 
+                alt="Fractionl.ai Logo" 
+                className="h-8 w-auto"
+              />
               <p className="text-muted-foreground">AI Business Intelligence Dashboard</p>
             </div>
           </div>

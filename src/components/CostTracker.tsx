@@ -11,6 +11,7 @@ export interface Cost {
   id: string;
   name: string;
   amount: number;
+  subcategory: string;
   category: 'Variable Costs' | 'Fixed Costs';
 }
 
@@ -19,21 +20,55 @@ interface CostTrackerProps {
   onUpdateCosts: (costs: Cost[]) => void;
 }
 
+const COST_SUBCATEGORIES = {
+  // Variable Costs
+  'Freelancer/contractor fees': 'Variable Costs',
+  'AI tool subscriptions (scaling)': 'Variable Costs',
+  'Workshop materials': 'Variable Costs',
+  'Travel expenses': 'Variable Costs',
+  'Client-specific software': 'Variable Costs',
+  'Paid advertising': 'Variable Costs',
+  'Conference attendance': 'Variable Costs',
+  'Lead generation tools': 'Variable Costs',
+  'Commission payments': 'Variable Costs',
+  
+  // Fixed Costs
+  'Website hosting': 'Fixed Costs',
+  'Base AI subscriptions': 'Fixed Costs',
+  'Business insurance': 'Fixed Costs',
+  'Accounting/bookkeeping services': 'Fixed Costs',
+  'Legal fees': 'Fixed Costs',
+  'CRM subscription': 'Fixed Costs',
+  'Email marketing platform': 'Fixed Costs',
+  'Video conferencing tools': 'Fixed Costs',
+  'Design and presentation software': 'Fixed Costs',
+  'Cloud storage and backup services': 'Fixed Costs',
+  'Continuing education': 'Fixed Costs',
+  'Industry conference attendance': 'Fixed Costs',
+  'Professional memberships': 'Fixed Costs',
+  'Business registration and license renewals': 'Fixed Costs',
+  'Banking fees': 'Fixed Costs',
+  'Phone and internet services': 'Fixed Costs',
+  'Office supplies': 'Fixed Costs'
+} as const;
+
 export const CostTracker = ({ costs, onUpdateCosts }: CostTrackerProps) => {
-  const [newCost, setNewCost] = useState<{ name: string; amount: number; category: 'Variable Costs' | 'Fixed Costs' }>({ 
+  const [newCost, setNewCost] = useState<{ name: string; amount: number; subcategory: string }>({ 
     name: '', 
     amount: 0, 
-    category: 'Variable Costs' 
+    subcategory: '' 
   });
 
   const addCost = () => {
-    if (newCost.name && newCost.amount > 0) {
+    if (newCost.name && newCost.amount > 0 && newCost.subcategory) {
+      const category = COST_SUBCATEGORIES[newCost.subcategory as keyof typeof COST_SUBCATEGORIES] as 'Variable Costs' | 'Fixed Costs';
       const cost: Cost = {
         id: Date.now().toString(),
-        ...newCost
+        ...newCost,
+        category
       };
       onUpdateCosts([...costs, cost]);
-      setNewCost({ name: '', amount: 0, category: 'Variable Costs' });
+      setNewCost({ name: '', amount: 0, subcategory: '' });
     }
   };
 
@@ -75,7 +110,8 @@ export const CostTracker = ({ costs, onUpdateCosts }: CostTrackerProps) => {
               <div key={cost.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border">
                 <div>
                   <p className="font-medium text-foreground">{cost.name}</p>
-                  <p className="text-sm text-muted-foreground">${cost.amount.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">{cost.subcategory}</p>
+                  <p className="text-sm text-muted-foreground">${cost.amount.toLocaleString()}/month</p>
                 </div>
                 <Button
                   variant="ghost"
@@ -100,24 +136,24 @@ export const CostTracker = ({ costs, onUpdateCosts }: CostTrackerProps) => {
         <CardHeader>
           <CardTitle className="flex items-center text-card-foreground">
             <Plus className="w-5 h-5 mr-2 text-primary" />
-            Add New Cost
+            Add Monthly Cost
           </CardTitle>
-          <CardDescription>Track your business expenses by category</CardDescription>
+          <CardDescription>Track your business expenses - automatically categorized as fixed or variable</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="cost-name">Cost Name</Label>
+              <Label htmlFor="cost-name">Cost Description</Label>
               <Input
                 id="cost-name"
-                placeholder="e.g., AI Platform Subscription"
+                placeholder="e.g., Monthly CRM License"
                 value={newCost.name}
                 onChange={(e) => setNewCost({ ...newCost, name: e.target.value })}
                 className="bg-input border-border"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cost-amount">Amount ($)</Label>
+              <Label htmlFor="cost-amount">Monthly Amount ($)</Label>
               <Input
                 id="cost-amount"
                 type="number"
@@ -130,19 +166,33 @@ export const CostTracker = ({ costs, onUpdateCosts }: CostTrackerProps) => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cost-category">Category</Label>
+              <Label htmlFor="cost-subcategory">Cost Type</Label>
               <Select 
-                value={newCost.category} 
+                value={newCost.subcategory} 
                 onValueChange={(value) => 
-                  setNewCost({ ...newCost, category: value as 'Variable Costs' | 'Fixed Costs' })
+                  setNewCost({ ...newCost, subcategory: value })
                 }
               >
                 <SelectTrigger className="bg-input border-border">
-                  <SelectValue />
+                  <SelectValue placeholder="Select cost type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Variable Costs">Variable Costs</SelectItem>
-                  <SelectItem value="Fixed Costs">Fixed Costs</SelectItem>
+                  <SelectItem disabled value="">Variable Costs</SelectItem>
+                  {Object.keys(COST_SUBCATEGORIES)
+                    .filter(key => COST_SUBCATEGORIES[key as keyof typeof COST_SUBCATEGORIES] === 'Variable Costs')
+                    .map(subcategory => (
+                      <SelectItem key={subcategory} value={subcategory} className="pl-6">
+                        {subcategory}
+                      </SelectItem>
+                    ))}
+                  <SelectItem disabled value="">Fixed Costs</SelectItem>
+                  {Object.keys(COST_SUBCATEGORIES)
+                    .filter(key => COST_SUBCATEGORIES[key as keyof typeof COST_SUBCATEGORIES] === 'Fixed Costs')
+                    .map(subcategory => (
+                      <SelectItem key={subcategory} value={subcategory} className="pl-6">
+                        {subcategory}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -169,15 +219,15 @@ export const CostTracker = ({ costs, onUpdateCosts }: CostTrackerProps) => {
             <div className="p-4 bg-muted/50 rounded-lg border border-border">
               <p className="text-sm font-medium text-muted-foreground">Variable Costs</p>
               <p className="text-2xl font-bold text-destructive">${variableTotal.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">{variableCosts.length} items</p>
+              <p className="text-xs text-muted-foreground">{variableCosts.length} items • Monthly</p>
             </div>
             <div className="p-4 bg-muted/50 rounded-lg border border-border">
               <p className="text-sm font-medium text-muted-foreground">Fixed Costs</p>
               <p className="text-2xl font-bold text-destructive">${fixedTotal.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">{fixedCosts.length} items</p>
+              <p className="text-xs text-muted-foreground">{fixedCosts.length} items • Monthly</p>
             </div>
             <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
-              <p className="text-sm font-medium text-primary">Total Costs</p>
+              <p className="text-sm font-medium text-primary">Total Monthly Costs</p>
               <p className="text-2xl font-bold text-primary">${totalCosts.toLocaleString()}</p>
               <p className="text-xs text-primary/70">{costs.length} total items</p>
             </div>
