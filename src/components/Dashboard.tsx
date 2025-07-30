@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, TrendingUp, TrendingDown, Brain, Target, DollarSign, Users, Eye, Share2, FileText, Lightbulb, Calendar, Zap } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { AIInsightsPanel } from './AIInsightsPanel';
+import { QuickAIInsight } from './QuickAIInsight';
+import { AIStrategyHub } from './AIStrategyHub';
 import { GoalTracker } from './GoalTracker';
 import { MetricsOverview } from './MetricsOverview';
 import { CostTracker, Cost } from './CostTracker';
@@ -29,9 +30,7 @@ export const Dashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState('Aug 2025');
   const [goals, setGoals] = useState<Record<string, MonthlyGoals>>({});
   const [costs, setCosts] = useState<Record<string, Cost[]>>({});
-  const [aiInsights, setAiInsights] = useState<string>('');
-  const [isLoadingInsights, setIsLoadingInsights] = useState(false);
-  const [dashboardView, setDashboardView] = useState<'goals' | 'tracking'>('tracking');
+  const [dashboardView, setDashboardView] = useState<'goals' | 'tracking' | 'ai-strategy'>('tracking');
 
   // Initialize default goals for all months
   useEffect(() => {
@@ -95,32 +94,6 @@ export const Dashboard = () => {
     updateDailyActuals,
   } = useProgressTracking(currentGoals);
 
-  const getAIInsights = async () => {
-    setIsLoadingInsights(true);
-    try {
-      // This will call our secure backend endpoint
-      const response = await fetch('/api/ai/analyze-goals', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          monthlyData: currentGoals,
-          allGoals: goals
-        })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setAiInsights(data.insights);
-      } else {
-        setAiInsights('AI analysis temporarily unavailable. Please ensure backend is configured.');
-      }
-    } catch (error) {
-      setAiInsights('Unable to connect to AI service. Backend integration required.');
-    }
-    setIsLoadingInsights(false);
-  };
 
   const getMetricStatus = (current: number, target: number) => {
     const ratio = current / target;
@@ -171,15 +144,16 @@ export const Dashboard = () => {
                 <Target className="w-3 h-3 mr-1" />
                 Goal Setting
               </Button>
+              <Button
+                variant={dashboardView === 'ai-strategy' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setDashboardView('ai-strategy')}
+                className="text-xs"
+              >
+                <Brain className="w-3 h-3 mr-1" />
+                AI Strategy
+              </Button>
             </div>
-            <Button 
-              onClick={getAIInsights} 
-              disabled={isLoadingInsights}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              <Brain className="w-4 h-4 mr-2" />
-              {isLoadingInsights ? 'Analyzing...' : 'Get AI Insights'}
-            </Button>
           </div>
         </div>
 
@@ -230,7 +204,7 @@ export const Dashboard = () => {
               />
             </CardContent>
           </Card>
-        ) : (
+        ) : dashboardView === 'tracking' ? (
           /* Daily Tracking View */
           <div className="space-y-6">
             {/* Month Selection Bar */}
@@ -253,6 +227,17 @@ export const Dashboard = () => {
               </Badge>
             </div>
 
+            {/* Quick AI Insight */}
+            <QuickAIInsight currentMetrics={{
+              currentGoals,
+              todaysActuals,
+              overallScore,
+              monthProgress,
+              totalCosts,
+              netProfit,
+              profitMargin
+            }} />
+
             {/* Daily Tracker */}
             <DailyTracker
               currentGoals={currentGoals}
@@ -269,21 +254,34 @@ export const Dashboard = () => {
               <ProgressVisualization metrics={metricsProgress} />
             </div>
           </div>
+        ) : (
+          /* AI Strategy Hub */
+          <AIStrategyHub 
+            currentMetrics={{
+              currentGoals,
+              todaysActuals,
+              overallScore,
+              monthProgress,
+              totalCosts,
+              netProfit,
+              profitMargin
+            }}
+            monthlyGoals={currentGoals}
+          />
         )}
 
-        {/* Metrics Overview */}
-        <MetricsOverview goals={currentGoals} />
+        {/* Metrics Overview - Only show in tracking view */}
+        {dashboardView === 'tracking' && <MetricsOverview goals={currentGoals} />}
 
-        <Tabs defaultValue="analytics" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4 bg-muted">
+        {/* Analytics Tabs - Only show in tracking view */}
+        {dashboardView === 'tracking' && (
+          <Tabs defaultValue="analytics" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3 bg-muted">
             <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               Analytics
             </TabsTrigger>
             <TabsTrigger value="costs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               Cost Tracking
-            </TabsTrigger>
-            <TabsTrigger value="insights" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              AI Insights
             </TabsTrigger>
             <TabsTrigger value="projections" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               Projections
@@ -362,14 +360,6 @@ export const Dashboard = () => {
             />
           </TabsContent>
 
-          <TabsContent value="insights">
-            <AIInsightsPanel 
-              insights={aiInsights}
-              isLoading={isLoadingInsights}
-              onRefresh={getAIInsights}
-              goals={currentGoals}
-            />
-          </TabsContent>
 
           <TabsContent value="projections">
             <Card className="border-border bg-card">
@@ -409,6 +399,7 @@ export const Dashboard = () => {
             </Card>
           </TabsContent>
         </Tabs>
+        )}
       </div>
     </div>
   );
