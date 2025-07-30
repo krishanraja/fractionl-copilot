@@ -35,6 +35,7 @@ serve(async (req) => {
 
     // Handle business context loading from Assistant
     if (loadBusinessContext && assistantId) {
+      console.log('Loading business context from Assistant...');
       try {
         // Create a thread with the Assistant
         const threadResponse = await fetch('https://api.openai.com/v1/threads', {
@@ -48,13 +49,15 @@ serve(async (req) => {
         });
 
         if (!threadResponse.ok) {
+          console.error('Failed to create thread:', threadResponse.status, threadResponse.statusText);
           throw new Error(`Failed to create thread: ${threadResponse.statusText}`);
         }
 
         const thread = await threadResponse.json();
+        console.log('Thread created:', thread.id);
 
         // Send message to get business context
-        await fetch(`https://api.openai.com/v1/threads/${thread.id}/messages`, {
+        const messageResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/messages`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${openAIApiKey}`,
@@ -63,9 +66,16 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             role: 'user',
-            content: 'Please provide a comprehensive summary of the business details including: business type, target market, main challenges, and current priorities. Format this as a structured response.',
+            content: 'Please provide a comprehensive summary of the business details in JSON format with the following structure: {"business_type": "", "target_market": "", "main_challenges": [""], "priorities": [""]}. Include specific details about the business.',
           }),
         });
+
+        if (!messageResponse.ok) {
+          console.error('Failed to send message:', messageResponse.status, messageResponse.statusText);
+          throw new Error(`Failed to send message: ${messageResponse.statusText}`);
+        }
+
+        console.log('Message sent to assistant');
 
         // Run the assistant
         const runResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/runs`, {
@@ -81,10 +91,12 @@ serve(async (req) => {
         });
 
         if (!runResponse.ok) {
+          console.error('Failed to run assistant:', runResponse.status, runResponse.statusText);
           throw new Error(`Failed to run assistant: ${runResponse.statusText}`);
         }
 
         const run = await runResponse.json();
+        console.log('Assistant run started:', run.id, 'Status:', run.status);
 
         // Poll for completion
         let runStatus = run.status;
@@ -105,11 +117,13 @@ serve(async (req) => {
           if (statusResponse.ok) {
             const statusData = await statusResponse.json();
             runStatus = statusData.status;
+            console.log(`Run status attempt ${attempts + 1}:`, runStatus);
           }
           attempts++;
         }
 
         if (runStatus === 'completed') {
+          console.log('Assistant run completed, fetching messages...');
           // Get the assistant's response
           const messagesResponse = await fetch(`https://api.openai.com/v1/threads/${thread.id}/messages`, {
             method: 'GET',
@@ -124,26 +138,105 @@ serve(async (req) => {
             const assistantMessage = messages.data.find(msg => msg.role === 'assistant');
             
             if (assistantMessage && assistantMessage.content[0]?.text?.value) {
-              const businessContext = assistantMessage.content[0].text.value;
+              const businessContextText = assistantMessage.content[0].text.value;
+              console.log('Assistant response received:', businessContextText);
+              
+              // Try to parse JSON from the response or use simple parsing
+              let parsedContext;
+              try {
+                // Try to extract JSON from the response
+                const jsonMatch = businessContextText.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                  parsedContext = JSON.parse(jsonMatch[0]);
+                } else {
+                  throw new Error('No JSON found in response');
+                }
+              } catch (parseError) {
+                console.log('JSON parsing failed, using text parsing:', parseError);
+                // Fallback to text parsing
+                parsedContext = {
+                  business_type: businessContextText.match(/business type[:\s]*(.*?)(?:\n|\.)/i)?.[1]?.trim() || '',
+                  target_market: businessContextText.match(/target market[:\s]*(.*?)(?:\n|\.)/i)?.[1]?.trim() || '',
+                  main_challenges: businessContextText.match(/challenges?[:\s]*(.*?)(?:\n\n|\. [A-Z])/i)?.[1]?.split(/[,;]/).map(c => c.trim()).filter(Boolean) || [],
+                  priorities: businessContextText.match(/priorities?[:\s]*(.*?)(?:\n\n|\. [A-Z])/i)?.[1]?.split(/[,;]/).map(p => p.trim()).filter(Boolean) || [],
+                };
+              }
+
+              console.log('Parsed business context:', parsedContext);
+
+              // Save the business context to the database
+              const { error: saveError } = await supabase
+                .from('user_business_context')
+                .upsert({
+                  user_id: userId,
+                  business_type: parsedContext.business_type,
+                  target_market: parsedContext.target_market,
+                  main_challenges: parsedContext.main_challenges,
+                  priorities: parsedContext.priorities,
+                });
+
+              if (saveError) {
+                console.error('Error saving business context to database:', saveError);
+                throw new Error(`Failed to save business context: ${saveError.message}`);
+              }
+
+              console.log('Business context saved to database successfully');
               
               return new Response(JSON.stringify({ 
-                businessContext,
+                businessContext: parsedContext,
+                rawResponse: businessContextText,
                 success: true 
               }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
               });
+            } else {
+              console.error('No assistant message content found');
+              throw new Error('No content in assistant response');
             }
+          } else {
+            console.error('Failed to fetch messages:', messagesResponse.status, messagesResponse.statusText);
+            throw new Error('Failed to fetch assistant messages');
           }
+        } else {
+          console.error('Assistant run failed or timed out. Final status:', runStatus);
+          throw new Error(`Assistant run failed with status: ${runStatus}`);
         }
-
-        throw new Error('Failed to get business context from assistant');
       } catch (error) {
         console.error('Error loading business context from assistant:', error);
+        
+        // Create a default business context as fallback
+        const defaultContext = {
+          business_type: 'Business (Auto-sync pending)',
+          target_market: 'Target market analysis pending',
+          main_challenges: ['Assistant configuration needed'],
+          priorities: ['Complete AI Assistant setup'],
+        };
+
+        // Save the default context
+        try {
+          const { error: saveError } = await supabase
+            .from('user_business_context')
+            .upsert({
+              user_id: userId,
+              business_type: defaultContext.business_type,
+              target_market: defaultContext.target_market,
+              main_challenges: defaultContext.main_challenges,
+              priorities: defaultContext.priorities,
+            });
+
+          if (!saveError) {
+            console.log('Default business context saved');
+          }
+        } catch (saveError) {
+          console.error('Failed to save default context:', saveError);
+        }
+
         return new Response(JSON.stringify({ 
-          error: 'Failed to load business context from assistant',
+          error: error.message,
+          businessContext: defaultContext,
           fallback: true 
         }), {
-          status: 500,
+          status: 200, // Return 200 so frontend can handle gracefully
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }

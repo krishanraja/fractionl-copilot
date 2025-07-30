@@ -150,35 +150,50 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
       if (error) throw error;
 
       if (data.businessContext) {
-        // Parse the assistant response to extract business context
+        // The edge function now returns a properly parsed object
         const context = data.businessContext;
         
-        // Simple parsing - in a real app, you might want more sophisticated parsing
-        const businessType = context.match(/business type[:\s]*(.*?)(?:\n|\.)/i)?.[1] || '';
-        const targetMarket = context.match(/target market[:\s]*(.*?)(?:\n|\.)/i)?.[1] || '';
-        const challenges = context.match(/challenges?[:\s]*(.*?)(?:\n\n|\. [A-Z])/i)?.[1]?.split(/[,;]/) || [];
-        const priorities = context.match(/priorities?[:\s]*(.*?)(?:\n\n|\. [A-Z])/i)?.[1]?.split(/[,;]/) || [];
-
         setBusinessContext({
-          business_type: businessType.trim(),
-          target_market: targetMarket.trim(),
-          main_challenges: challenges.map(c => c.trim()).filter(Boolean),
-          priorities: priorities.map(p => p.trim()).filter(Boolean),
+          business_type: context.business_type || '',
+          target_market: context.target_market || '',
+          main_challenges: context.main_challenges || [],
+          priorities: context.priorities || [],
         });
 
         setIsContextAutoLoaded(true);
 
-        // Auto-save the loaded context
-        updateBusinessContext();
+        // Reload the business context from the database since it was saved server-side
+        await loadBusinessContext();
 
+        if (data.fallback) {
+          toast({
+            title: "Default context loaded",
+            description: "Assistant integration needs configuration. Using fallback data.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Business context synced",
+            description: "AI Assistant context loaded and saved automatically.",
+          });
+        }
+      } else if (data.error) {
+        console.error('Assistant integration error:', data.error);
+        setIsContextAutoLoaded(true); // Mark as attempted
         toast({
-          title: "Business context synced",
-          description: "AI Assistant context loaded and saved automatically.",
+          title: "Assistant integration issue",
+          description: data.fallback ? "Using default context for now." : "Please check Assistant configuration.",
+          variant: "destructive",
         });
       }
     } catch (error) {
       console.error('Error loading business context from assistant:', error);
-      // Silently fail for auto-loading, don't show error toast
+      setIsContextAutoLoaded(true); // Mark as attempted
+      toast({
+        title: "Connection error",
+        description: "Failed to connect to AI Assistant. Please try again later.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoadingContext(false);
     }
