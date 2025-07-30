@@ -64,6 +64,7 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
       const { data, error } = await supabase
         .from('ai_conversations')
         .select('*')
+        .eq('user_id', 'default_user')
         .eq('conversation_type', 'strategic')
         .order('created_at', { ascending: false })
         .limit(10);
@@ -80,9 +81,10 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
       const { data, error } = await supabase
         .from('user_business_context')
         .select('*')
-        .single();
+        .eq('user_id', 'default_user')
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
       if (data) {
         setBusinessContext({
           business_type: data.business_type || '',
@@ -237,8 +239,8 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
             Strategic Chat
           </TabsTrigger>
           <TabsTrigger value="context" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Business Context
+            <Bot className="h-4 w-4" />
+            Business Summary
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2">
             <History className="h-4 w-4" />
@@ -304,9 +306,9 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
         <TabsContent value="context" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Business Context</CardTitle>
+              <CardTitle>Business Summary</CardTitle>
               <CardDescription>
-                Load business details from your trained OpenAI Assistant or enter them manually for personalized insights.
+                Automatically synced business insights from your AI Assistant - no manual input required.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -336,58 +338,58 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
               
               <Separator />
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Business Type</label>
-                  <Input
-                    placeholder="e.g., SaaS, Consulting, E-commerce"
-                    value={businessContext.business_type}
-                    onChange={(e) => setBusinessContext(prev => ({ 
-                      ...prev, 
-                      business_type: e.target.value 
-                    }))}
-                  />
+              {businessContext.business_type || businessContext.target_market || 
+               businessContext.main_challenges.length > 0 || businessContext.priorities.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {businessContext.business_type && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-muted-foreground">Business Type</h4>
+                      <p className="text-sm p-3 bg-muted rounded-md">{businessContext.business_type}</p>
+                    </div>
+                  )}
+                  {businessContext.target_market && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-muted-foreground">Target Market</h4>
+                      <p className="text-sm p-3 bg-muted rounded-md">{businessContext.target_market}</p>
+                    </div>
+                  )}
                 </div>
+              ) : null}
+
+              {businessContext.main_challenges.length > 0 && (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Target Market</label>
-                  <Input
-                    placeholder="e.g., Small businesses, Enterprise, Consumers"
-                    value={businessContext.target_market}
-                    onChange={(e) => setBusinessContext(prev => ({ 
-                      ...prev, 
-                      target_market: e.target.value 
-                    }))}
-                  />
+                  <h4 className="text-sm font-medium text-muted-foreground">Main Challenges</h4>
+                  <div className="space-y-2">
+                    {businessContext.main_challenges.map((challenge, index) => (
+                      <div key={index} className="text-sm p-3 bg-muted rounded-md">
+                        {challenge}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Main Challenges</label>
-                <Textarea
-                  placeholder="Describe your biggest business challenges..."
-                  value={businessContext.main_challenges.join('\n')}
-                  onChange={(e) => setBusinessContext(prev => ({ 
-                    ...prev, 
-                    main_challenges: e.target.value.split('\n').filter(Boolean)
-                  }))}
-                />
-              </div>
+              {businessContext.priorities.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground">Current Priorities</h4>
+                  <div className="space-y-2">
+                    {businessContext.priorities.map((priority, index) => (
+                      <div key={index} className="text-sm p-3 bg-muted rounded-md">
+                        {priority}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Current Priorities</label>
-                <Textarea
-                  placeholder="What are your top priorities right now?"
-                  value={businessContext.priorities.join('\n')}
-                  onChange={(e) => setBusinessContext(prev => ({ 
-                    ...prev, 
-                    priorities: e.target.value.split('\n').filter(Boolean)
-                  }))}
-                />
-              </div>
-
-              <Button onClick={updateBusinessContext} className="w-full">
-                Save Business Context
-              </Button>
+              {!businessContext.business_type && !businessContext.target_market && 
+               businessContext.main_challenges.length === 0 && businessContext.priorities.length === 0 && !isLoadingContext && (
+                <div className="text-center text-muted-foreground py-8">
+                  <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-sm">Business context will appear here once synced with your AI Assistant.</p>
+                  <p className="text-xs mt-2">Sync happens automatically when the Assistant is properly configured.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
