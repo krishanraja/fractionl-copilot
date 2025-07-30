@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Plus, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
 
@@ -177,22 +177,26 @@ export const CostTracker = ({ costs, onUpdateCosts }: CostTrackerProps) => {
                   <SelectValue placeholder="Select cost type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem disabled value="">Variable Costs</SelectItem>
-                  {Object.keys(COST_SUBCATEGORIES)
-                    .filter(key => COST_SUBCATEGORIES[key as keyof typeof COST_SUBCATEGORIES] === 'Variable Costs')
-                    .map(subcategory => (
-                      <SelectItem key={subcategory} value={subcategory} className="pl-6">
-                        {subcategory}
-                      </SelectItem>
-                    ))}
-                  <SelectItem disabled value="">Fixed Costs</SelectItem>
-                  {Object.keys(COST_SUBCATEGORIES)
-                    .filter(key => COST_SUBCATEGORIES[key as keyof typeof COST_SUBCATEGORIES] === 'Fixed Costs')
-                    .map(subcategory => (
-                      <SelectItem key={subcategory} value={subcategory} className="pl-6">
-                        {subcategory}
-                      </SelectItem>
-                    ))}
+                  <SelectGroup>
+                    <SelectLabel>Variable Costs</SelectLabel>
+                    {Object.keys(COST_SUBCATEGORIES)
+                      .filter(key => COST_SUBCATEGORIES[key as keyof typeof COST_SUBCATEGORIES] === 'Variable Costs')
+                      .map(subcategory => (
+                        <SelectItem key={subcategory} value={subcategory}>
+                          {subcategory}
+                        </SelectItem>
+                      ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Fixed Costs</SelectLabel>
+                    {Object.keys(COST_SUBCATEGORIES)
+                      .filter(key => COST_SUBCATEGORIES[key as keyof typeof COST_SUBCATEGORIES] === 'Fixed Costs')
+                      .map(subcategory => (
+                        <SelectItem key={subcategory} value={subcategory}>
+                          {subcategory}
+                        </SelectItem>
+                      ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
