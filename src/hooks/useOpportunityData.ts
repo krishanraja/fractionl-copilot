@@ -2,12 +2,16 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Opportunity } from '@/types/tracking';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from './useAuth';
 
 export const useOpportunityData = (selectedMonth: string) => {
+  const { user } = useAuth();
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadOpportunities = async () => {
+    if (!user) return;
+    
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -39,6 +43,8 @@ export const useOpportunityData = (selectedMonth: string) => {
   };
 
   const createOpportunity = async (opportunityData: Partial<Opportunity>) => {
+    if (!user) return;
+    
     try {
       if (!opportunityData.title || !opportunityData.type) {
         throw new Error('Title and type are required');
@@ -48,7 +54,7 @@ export const useOpportunityData = (selectedMonth: string) => {
         .from('opportunities')
         .insert({
           ...opportunityData,
-          user_id: 'default_user',
+          user_id: user.id,
           month: selectedMonth,
           title: opportunityData.title,
           type: opportunityData.type
@@ -81,6 +87,8 @@ export const useOpportunityData = (selectedMonth: string) => {
   };
 
   const updateOpportunity = async (id: string, updates: Partial<Opportunity>) => {
+    if (!user) return;
+    
     try {
       const { data, error } = await supabase
         .from('opportunities')
@@ -116,6 +124,8 @@ export const useOpportunityData = (selectedMonth: string) => {
   };
 
   const deleteOpportunity = async (id: string) => {
+    if (!user) return;
+    
     try {
       const { error } = await supabase
         .from('opportunities')
@@ -147,8 +157,10 @@ export const useOpportunityData = (selectedMonth: string) => {
   };
 
   useEffect(() => {
-    loadOpportunities();
-  }, [selectedMonth]);
+    if (user) {
+      loadOpportunities();
+    }
+  }, [selectedMonth, user]);
 
   return {
     opportunities,

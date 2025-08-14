@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TrendingUp, TrendingDown, Brain, Target, Settings, Calendar, Zap } from 'lucide-react';
+import { TrendingUp, TrendingDown, Brain, Target, Settings, Calendar, Zap, LogOut } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { QuickAIInsight } from './QuickAIInsight';
 import { AIStrategyHub } from './AIStrategyHub';
@@ -23,6 +24,7 @@ import { useTrackingData } from '@/hooks/useTrackingData';
 import { generateFutureMonths } from '@/utils/monthUtils';
 
 export const Dashboard = () => {
+  const { signOut } = useAuth();
   const currentMonth = new Date().toISOString().slice(0, 7);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [costs, setCosts] = useState<Record<string, Cost[]>>({});
@@ -134,6 +136,15 @@ export const Dashboard = () => {
                 AI Strategy
               </Button>
             </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={signOut}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
           </div>
         </div>
 

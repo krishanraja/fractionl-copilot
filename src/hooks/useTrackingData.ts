@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from './useAuth';
 import { 
   MonthlyGoals, 
   MonthlySnapshots, 
@@ -88,6 +89,7 @@ const METRIC_CONFIGS: MetricConfig[] = [
 ];
 
 export const useTrackingData = (selectedMonth: string) => {
+  const { user } = useAuth();
   const [monthlyGoals, setMonthlyGoals] = useState<MonthlyGoals | null>(null);
   const [monthlySnapshots, setMonthlySnapshots] = useState<MonthlySnapshots | null>(null);
   const [dailyProgress, setDailyProgress] = useState<DailyProgress[]>([]);
@@ -116,17 +118,21 @@ export const useTrackingData = (selectedMonth: string) => {
 
   // Load data from Supabase
   useEffect(() => {
-    loadTrackingData();
-  }, [selectedMonth]);
+    if (user) {
+      loadTrackingData();
+    }
+  }, [selectedMonth, user]);
 
   const loadTrackingData = async () => {
+    if (!user) return;
+    
     setLoading(true);
     try {
       // Load monthly goals
       const { data: goalsData, error: goalsError } = await supabase
         .from('monthly_goals')
         .select('*')
-        .eq('user_id', 'default_user')
+        .eq('user_id', user.id)
         .eq('month', selectedMonth)
         .maybeSingle();
 
@@ -136,7 +142,7 @@ export const useTrackingData = (selectedMonth: string) => {
       const { data: snapshotsData, error: snapshotsError } = await supabase
         .from('monthly_snapshots')
         .select('*')
-        .eq('user_id', 'default_user')
+        .eq('user_id', user.id)
         .eq('month', selectedMonth)
         .maybeSingle();
 
@@ -146,7 +152,7 @@ export const useTrackingData = (selectedMonth: string) => {
       const { data: progressData, error: progressError } = await supabase
         .from('daily_progress')
         .select('*')
-        .eq('user_id', 'default_user')
+        .eq('user_id', user.id)
         .eq('month', selectedMonth)
         .order('date', { ascending: false });
 
@@ -156,7 +162,7 @@ export const useTrackingData = (selectedMonth: string) => {
       const { data: todayData, error: todayError } = await supabase
         .from('daily_progress')
         .select('*')
-        .eq('user_id', 'default_user')
+        .eq('user_id', user.id)
         .eq('date', today)
         .maybeSingle();
 
@@ -255,11 +261,13 @@ export const useTrackingData = (selectedMonth: string) => {
 
   // Update monthly goals
   const updateMonthlyGoals = async (updates: Partial<MonthlyGoals>) => {
+    if (!user) return;
+    
     try {
       const { data, error } = await supabase
         .from('monthly_goals')
         .upsert({
-          user_id: 'default_user',
+          user_id: user.id,
           month: selectedMonth,
           ...monthlyGoals,
           ...updates
@@ -288,11 +296,13 @@ export const useTrackingData = (selectedMonth: string) => {
 
   // Update monthly snapshots
   const updateMonthlySnapshots = async (updates: Partial<MonthlySnapshots>) => {
+    if (!user) return;
+    
     try {
       const { data, error } = await supabase
         .from('monthly_snapshots')
         .upsert({
-          user_id: 'default_user',
+          user_id: user.id,
           month: selectedMonth,
           ...monthlySnapshots,
           ...updates
@@ -321,11 +331,13 @@ export const useTrackingData = (selectedMonth: string) => {
 
   // Update daily progress
   const updateDailyProgress = async (updates: Partial<DailyProgress>) => {
+    if (!user) return;
+    
     try {
       const { data, error } = await supabase
         .from('daily_progress')
         .upsert({
-          user_id: 'default_user',
+          user_id: user.id,
           date: today,
           month: selectedMonth,
           ...todaysProgress,
