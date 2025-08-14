@@ -2,7 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Trophy, Target, Flame, Zap, Calendar, TrendingUp } from 'lucide-react';
-import { StreakData, Achievement } from '@/types/dashboard';
+import { StreakData, Achievement } from '@/types/tracking';
 
 interface MotivationalHeaderProps {
   streakData: StreakData;

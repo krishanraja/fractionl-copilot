@@ -62,8 +62,8 @@ export const Dashboard = () => {
     return { status: 'destructive', icon: TrendingDown, message: 'Below target' };
   };
 
-  const netProfit = (monthlyGoals?.revenue_target || 0) - totalCosts;
-  const profitMargin = (monthlyGoals?.revenue_target || 0) > 0 ? (netProfit / (monthlyGoals?.revenue_target || 1)) * 100 : 0;
+  const netProfit = (monthlyGoals?.revenue_forecast || 0) - totalCosts;
+  const profitMargin = (monthlyGoals?.revenue_forecast || 0) > 0 ? (netProfit / (monthlyGoals?.revenue_forecast || 1)) * 100 : 0;
 
   // Format month for display
   const formatMonth = (month: string) => {
@@ -96,11 +96,20 @@ export const Dashboard = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {MONTHS.map(month => (
-                  <SelectItem key={month} value={month}>
-                    {formatMonth(month)}
-                  </SelectItem>
-                ))}
+                {metricsProgress.length > 0 ? 
+                  // Use available months from tracking data hook
+                  ['2025-01', '2025-02', '2025-03', '2025-04', '2025-05', '2025-06', '2025-07', '2025-08', '2025-09', '2025-10', '2025-11', '2025-12'].map(month => (
+                    <SelectItem key={month} value={month}>
+                      {formatMonth(month)}
+                    </SelectItem>
+                  )) : 
+                  // Fallback for loading state
+                  MONTHS.map(month => (
+                    <SelectItem key={month} value={month}>
+                      {formatMonth(month)}
+                    </SelectItem>
+                  ))
+                }
               </SelectContent>
             </Select>
             
@@ -184,7 +193,7 @@ export const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-primary">
-                    ${(monthlyGoals?.revenue_target || 0).toLocaleString()}
+                    ${(monthlyGoals?.revenue_forecast || 0).toLocaleString()}
                   </div>
                   <p className="text-sm text-muted-foreground">Monthly Goal</p>
                 </CardContent>
@@ -196,7 +205,7 @@ export const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-orange-600">
-                    ${(monthlyGoals?.cost_target || 0).toLocaleString()}
+                    ${(monthlyGoals?.cost_budget || 0).toLocaleString()}
                   </div>
                   <p className="text-sm text-muted-foreground">Monthly Budget</p>
                 </CardContent>
@@ -223,8 +232,8 @@ export const Dashboard = () => {
             <QuickAIInsight currentMetrics={{
               currentGoals: {
                 month: selectedMonth,
-                grossRevenue: monthlyGoals?.revenue_target || 0,
-                totalCosts: monthlyGoals?.cost_target || 0,
+                grossRevenue: monthlyGoals?.revenue_forecast || 0,
+                totalCosts: monthlyGoals?.cost_budget || 0,
                 siteVisits: monthlySnapshots?.site_visits || 0,
                 socialFollowers: monthlySnapshots?.social_followers || 0,
                 prArticles: monthlyGoals?.pr_target || 0,
@@ -234,8 +243,8 @@ export const Dashboard = () => {
               todaysActuals: {
                 date: new Date().toISOString().split('T')[0],
                 month: selectedMonth,
-                grossRevenue: todaysProgress?.revenue_progress || 0,
-                totalCosts: todaysProgress?.cost_progress || 0,
+                grossRevenue: 0, // Revenue is now tracked separately
+                totalCosts: 0, // Costs are now tracked separately
                 siteVisits: monthlySnapshots?.site_visits || 0,
                 socialFollowers: monthlySnapshots?.social_followers || 0,
                 prArticles: todaysProgress?.pr_progress || 0,
@@ -272,8 +281,8 @@ export const Dashboard = () => {
             currentMetrics={{
               currentGoals: {
                 month: selectedMonth,
-                grossRevenue: monthlyGoals?.revenue_target || 0,
-                totalCosts: monthlyGoals?.cost_target || 0,
+                grossRevenue: monthlyGoals?.revenue_forecast || 0,
+                totalCosts: monthlyGoals?.cost_budget || 0,
                 siteVisits: monthlySnapshots?.site_visits || 0,
                 socialFollowers: monthlySnapshots?.social_followers || 0,
                 prArticles: monthlyGoals?.pr_target || 0,
@@ -283,8 +292,8 @@ export const Dashboard = () => {
               todaysActuals: {
                 date: new Date().toISOString().split('T')[0],
                 month: selectedMonth,
-                grossRevenue: todaysProgress?.revenue_progress || 0,
-                totalCosts: todaysProgress?.cost_progress || 0,
+                grossRevenue: 0, // Revenue is now tracked separately
+                totalCosts: 0, // Costs are now tracked separately
                 siteVisits: monthlySnapshots?.site_visits || 0,
                 socialFollowers: monthlySnapshots?.social_followers || 0,
                 prArticles: todaysProgress?.pr_progress || 0,
@@ -299,8 +308,8 @@ export const Dashboard = () => {
             }}
             monthlyGoals={{
               month: selectedMonth,
-              grossRevenue: monthlyGoals?.revenue_target || 0,
-              totalCosts: monthlyGoals?.cost_target || 0,
+              grossRevenue: monthlyGoals?.revenue_forecast || 0,
+              totalCosts: monthlyGoals?.cost_budget || 0,
               siteVisits: monthlySnapshots?.site_visits || 0,
               socialFollowers: monthlySnapshots?.social_followers || 0,
               prArticles: monthlyGoals?.pr_target || 0,
@@ -320,8 +329,8 @@ export const Dashboard = () => {
         {dashboardView === 'tracking' && !loading && (
           <MetricsOverview goals={{
             month: selectedMonth,
-            grossRevenue: monthlyGoals?.revenue_target || 0,
-            totalCosts: monthlyGoals?.cost_target || 0,
+            grossRevenue: monthlyGoals?.revenue_forecast || 0,
+            totalCosts: monthlyGoals?.cost_budget || 0,
             siteVisits: monthlySnapshots?.site_visits || 0,
             socialFollowers: monthlySnapshots?.social_followers || 0,
             prArticles: monthlyGoals?.pr_target || 0,
@@ -357,7 +366,7 @@ export const Dashboard = () => {
                     <LineChart data={[
                       { month: 'Jan', revenue: 8500, costs: 2800 },
                       { month: 'Feb', revenue: 9200, costs: 3100 },
-                      { month: 'Current', revenue: monthlyGoals?.revenue_target || 0, costs: monthlyGoals?.cost_target || 0 }
+                      { month: 'Current', revenue: monthlyGoals?.revenue_forecast || 0, costs: monthlyGoals?.cost_budget || 0 }
                     ]}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
@@ -444,7 +453,7 @@ export const Dashboard = () => {
                     <div className="p-4 border rounded-lg">
                       <h4 className="font-semibold text-lg">Revenue Projection</h4>
                       <p className="text-2xl font-bold text-primary">
-                        ${Math.round((monthlyGoals?.revenue_target || 0) * (overallScore / 100)).toLocaleString()}
+                        ${Math.round((monthlyGoals?.revenue_forecast || 0) * (overallScore / 100)).toLocaleString()}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         Based on current progress ({overallScore}%)

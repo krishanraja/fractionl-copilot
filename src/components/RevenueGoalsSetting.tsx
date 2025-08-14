@@ -36,15 +36,15 @@ export const RevenueGoalsSetting = ({ goals, onUpdateGoals, selectedMonth }: Rev
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
-            <Label htmlFor="revenue_target" className="flex items-center text-sm font-medium text-foreground">
+            <Label htmlFor="revenue_forecast" className="flex items-center text-sm font-medium text-foreground">
               <DollarSign className="w-4 h-4 mr-2 text-primary" />
-              Monthly Revenue Target
+              Monthly Revenue Forecast
             </Label>
             <Input
-              id="revenue_target"
+              id="revenue_forecast"
               type="number"
-              value={goals?.revenue_target || 0}
-              onChange={(e) => handleInputChange('revenue_target', e.target.value)}
+              value={goals?.revenue_forecast || 0}
+              onChange={(e) => handleInputChange('revenue_forecast', e.target.value)}
               className="bg-input border-border text-foreground"
               min="0"
               step="100"
@@ -53,15 +53,15 @@ export const RevenueGoalsSetting = ({ goals, onUpdateGoals, selectedMonth }: Rev
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="cost_target" className="flex items-center text-sm font-medium text-foreground">
+            <Label htmlFor="cost_budget" className="flex items-center text-sm font-medium text-foreground">
               <Target className="w-4 h-4 mr-2 text-primary" />
               Monthly Cost Budget
             </Label>
             <Input
-              id="cost_target"
+              id="cost_budget"
               type="number"
-              value={goals?.cost_target || 0}
-              onChange={(e) => handleInputChange('cost_target', e.target.value)}
+              value={goals?.cost_budget || 0}
+              onChange={(e) => handleInputChange('cost_budget', e.target.value)}
               className="bg-input border-border text-foreground"
               min="0"
               step="100"
@@ -74,14 +74,14 @@ export const RevenueGoalsSetting = ({ goals, onUpdateGoals, selectedMonth }: Rev
           <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">Projected Net Profit:</span>
             <span className="font-semibold text-foreground">
-              ${((goals?.revenue_target || 0) - (goals?.cost_target || 0)).toLocaleString()}
+              ${((goals?.revenue_forecast || 0) - (goals?.cost_budget || 0)).toLocaleString()}
             </span>
           </div>
           <div className="flex justify-between items-center text-sm mt-1">
             <span className="text-muted-foreground">Profit Margin:</span>
             <span className="font-semibold text-foreground">
-              {goals?.revenue_target && goals.revenue_target > 0 
-                ? (((goals.revenue_target - (goals.cost_target || 0)) / goals.revenue_target) * 100).toFixed(1)
+              {goals?.revenue_forecast && goals.revenue_forecast > 0 
+                ? (((goals.revenue_forecast - (goals.cost_budget || 0)) / goals.revenue_forecast) * 100).toFixed(1)
                 : 0}%
             </span>
           </div>

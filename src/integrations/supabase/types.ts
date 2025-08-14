@@ -47,7 +47,6 @@ export type Database = {
       daily_progress: {
         Row: {
           advisory_progress: number | null
-          cost_progress: number | null
           created_at: string
           date: string
           id: string
@@ -55,14 +54,12 @@ export type Database = {
           month: string
           notes: string | null
           pr_progress: number | null
-          revenue_progress: number | null
           updated_at: string
           user_id: string
           workshops_progress: number | null
         }
         Insert: {
           advisory_progress?: number | null
-          cost_progress?: number | null
           created_at?: string
           date: string
           id?: string
@@ -70,14 +67,12 @@ export type Database = {
           month: string
           notes?: string | null
           pr_progress?: number | null
-          revenue_progress?: number | null
           updated_at?: string
           user_id?: string
           workshops_progress?: number | null
         }
         Update: {
           advisory_progress?: number | null
-          cost_progress?: number | null
           created_at?: string
           date?: string
           id?: string
@@ -85,7 +80,6 @@ export type Database = {
           month?: string
           notes?: string | null
           pr_progress?: number | null
-          revenue_progress?: number | null
           updated_at?: string
           user_id?: string
           workshops_progress?: number | null
@@ -95,39 +89,39 @@ export type Database = {
       monthly_goals: {
         Row: {
           advisory_target: number | null
-          cost_target: number | null
+          cost_budget: number | null
           created_at: string
           id: string
           lectures_target: number | null
           month: string
           pr_target: number | null
-          revenue_target: number | null
+          revenue_forecast: number | null
           updated_at: string
           user_id: string
           workshops_target: number | null
         }
         Insert: {
           advisory_target?: number | null
-          cost_target?: number | null
+          cost_budget?: number | null
           created_at?: string
           id?: string
           lectures_target?: number | null
           month: string
           pr_target?: number | null
-          revenue_target?: number | null
+          revenue_forecast?: number | null
           updated_at?: string
           user_id?: string
           workshops_target?: number | null
         }
         Update: {
           advisory_target?: number | null
-          cost_target?: number | null
+          cost_budget?: number | null
           created_at?: string
           id?: string
           lectures_target?: number | null
           month?: string
           pr_target?: number | null
-          revenue_target?: number | null
+          revenue_forecast?: number | null
           updated_at?: string
           user_id?: string
           workshops_target?: number | null
@@ -159,6 +153,42 @@ export type Database = {
           month?: string
           site_visits?: number | null
           social_followers?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      revenue_entries: {
+        Row: {
+          amount: number
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          month: string
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          date: string
+          description?: string | null
+          id?: string
+          month: string
+          source: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          month?: string
+          source?: string
           updated_at?: string
           user_id?: string
         }

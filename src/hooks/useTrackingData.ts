@@ -21,16 +21,16 @@ import {
 
 const METRIC_CONFIGS: MetricConfig[] = [
   {
-    key: 'revenue_target',
-    label: 'Revenue Target',
+    key: 'revenue_forecast',
+    label: 'Revenue Forecast',
     icon: DollarSign,
     unit: '$',
     type: 'target',
     category: 'revenue'
   },
   {
-    key: 'cost_target',
-    label: 'Cost Target',
+    key: 'cost_budget',
+    label: 'Cost Budget',
     icon: Target,
     unit: '$',
     type: 'target',
@@ -94,6 +94,20 @@ export const useTrackingData = (selectedMonth: string) => {
   const [todaysProgress, setTodaysProgress] = useState<DailyProgress | null>(null);
   const [loading, setLoading] = useState(true);
   
+  // Generate future months for selection (current + next 12)
+  const generateFutureMonths = () => {
+    const months = [];
+    const currentDate = new Date();
+    
+    for (let i = 0; i < 13; i++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+      const monthKey = date.toISOString().slice(0, 7); // YYYY-MM format
+      months.push(monthKey);
+    }
+    
+    return months;
+  };
+
   // Available months for selection (current + next 12)
   const availableMonths = useMemo(() => generateFutureMonths(), []);
   const { toast } = useToast();

@@ -18,20 +18,6 @@ export const DailyProgressTracker = ({ todaysProgress, onUpdateProgress }: Daily
 
   const progressFields = [
     {
-      key: 'revenue_progress' as keyof DailyProgress,
-      label: 'Revenue Generated Today',
-      icon: DollarSign,
-      type: 'currency',
-      placeholder: '500'
-    },
-    {
-      key: 'cost_progress' as keyof DailyProgress,
-      label: 'Costs Incurred Today',
-      icon: Target,
-      type: 'currency',
-      placeholder: '200'
-    },
-    {
       key: 'workshops_progress' as keyof DailyProgress,
       label: 'Workshops Completed',
       icon: Users,
@@ -142,17 +128,11 @@ export const DailyProgressTracker = ({ todaysProgress, onUpdateProgress }: Daily
         {/* Daily Summary */}
         <div className="mt-6 p-4 bg-muted/50 rounded-lg">
           <div className="text-sm font-medium text-foreground mb-2">Today's Summary</div>
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 gap-4 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Net Profit:</span>
+              <span className="text-muted-foreground">Total Activities:</span>
               <span className="font-semibold text-foreground">
-                ${((formData.revenue_progress || 0) - (formData.cost_progress || 0)).toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Activities:</span>
-              <span className="font-semibold text-foreground">
-                {((formData.workshops_progress || 0) + (formData.advisory_progress || 0) + (formData.lectures_progress || 0) + (formData.pr_progress || 0))} total
+                {((formData.workshops_progress || 0) + (formData.advisory_progress || 0) + (formData.lectures_progress || 0) + (formData.pr_progress || 0))} completed
               </span>
             </div>
           </div>
