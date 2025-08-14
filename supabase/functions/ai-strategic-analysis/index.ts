@@ -404,18 +404,23 @@ serve(async (req) => {
       method: 'POST',
       headers,
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini-2025-08-07',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: question }
         ],
-        temperature: 0.7,
-        max_tokens: conversationType === 'quick_insight' ? 150 : 1000,
+        max_completion_tokens: conversationType === 'quick_insight' ? 150 : 1000,
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error('OpenAI API error details:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`OpenAI API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
@@ -448,10 +453,24 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in AI strategic analysis:', error);
+    
+    // Determine if this is an authentication error vs OpenAI API error
+    let errorMessage = error.message;
+    let statusCode = 500;
+    
+    if (error.message.includes('OpenAI API error')) {
+      errorMessage = 'OpenAI API connection failed. Please check your API key configuration.';
+      statusCode = 503;
+    } else if (error.message.includes('Authorization') || error.message.includes('Authentication')) {
+      errorMessage = 'Authentication failed. Please check your login status.';
+      statusCode = 401;
+    }
+    
     return new Response(JSON.stringify({ 
-      error: error.message 
+      error: errorMessage,
+      details: error.message
     }), {
-      status: 500,
+      status: statusCode,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
