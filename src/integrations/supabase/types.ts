@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -40,6 +40,165 @@ export type Database = {
           id?: string
           question?: string
           response?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      daily_progress: {
+        Row: {
+          advisory_progress: number | null
+          cost_progress: number | null
+          created_at: string
+          date: string
+          id: string
+          lectures_progress: number | null
+          month: string
+          notes: string | null
+          pr_progress: number | null
+          revenue_progress: number | null
+          updated_at: string
+          user_id: string
+          workshops_progress: number | null
+        }
+        Insert: {
+          advisory_progress?: number | null
+          cost_progress?: number | null
+          created_at?: string
+          date: string
+          id?: string
+          lectures_progress?: number | null
+          month: string
+          notes?: string | null
+          pr_progress?: number | null
+          revenue_progress?: number | null
+          updated_at?: string
+          user_id?: string
+          workshops_progress?: number | null
+        }
+        Update: {
+          advisory_progress?: number | null
+          cost_progress?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          lectures_progress?: number | null
+          month?: string
+          notes?: string | null
+          pr_progress?: number | null
+          revenue_progress?: number | null
+          updated_at?: string
+          user_id?: string
+          workshops_progress?: number | null
+        }
+        Relationships: []
+      }
+      monthly_goals: {
+        Row: {
+          advisory_target: number | null
+          cost_target: number | null
+          created_at: string
+          id: string
+          lectures_target: number | null
+          month: string
+          pr_target: number | null
+          revenue_target: number | null
+          updated_at: string
+          user_id: string
+          workshops_target: number | null
+        }
+        Insert: {
+          advisory_target?: number | null
+          cost_target?: number | null
+          created_at?: string
+          id?: string
+          lectures_target?: number | null
+          month: string
+          pr_target?: number | null
+          revenue_target?: number | null
+          updated_at?: string
+          user_id?: string
+          workshops_target?: number | null
+        }
+        Update: {
+          advisory_target?: number | null
+          cost_target?: number | null
+          created_at?: string
+          id?: string
+          lectures_target?: number | null
+          month?: string
+          pr_target?: number | null
+          revenue_target?: number | null
+          updated_at?: string
+          user_id?: string
+          workshops_target?: number | null
+        }
+        Relationships: []
+      }
+      monthly_snapshots: {
+        Row: {
+          created_at: string
+          id: string
+          month: string
+          site_visits: number | null
+          social_followers: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month: string
+          site_visits?: number | null
+          social_followers?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month?: string
+          site_visits?: number | null
+          social_followers?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      spreadsheet_sync: {
+        Row: {
+          created_at: string
+          google_sheet_id: string | null
+          id: string
+          last_sync_at: string | null
+          sync_enabled: boolean | null
+          sync_error: string | null
+          sync_frequency: string | null
+          sync_status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          google_sheet_id?: string | null
+          id?: string
+          last_sync_at?: string | null
+          sync_enabled?: boolean | null
+          sync_error?: string | null
+          sync_frequency?: string | null
+          sync_status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          google_sheet_id?: string | null
+          id?: string
+          last_sync_at?: string | null
+          sync_enabled?: boolean | null
+          sync_error?: string | null
+          sync_frequency?: string | null
+          sync_status?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

@@ -1,75 +1,48 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertCircle, TrendingUp, TrendingDown, Brain, Target, DollarSign, Users, Eye, Share2, FileText, Lightbulb, Calendar, Zap } from 'lucide-react';
+import { TrendingUp, TrendingDown, Brain, Target, Settings, Calendar, Zap } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { QuickAIInsight } from './QuickAIInsight';
 import { AIStrategyHub } from './AIStrategyHub';
-import { GoalTracker } from './GoalTracker';
+import { RevenueGoalsSetting } from './RevenueGoalsSetting';
+import { BusinessDevelopmentGoals } from './BusinessDevelopmentGoals';
+import { CurrentStateTracking } from './CurrentStateTracking';
+import { DailyProgressTracker } from './DailyProgressTracker';
 import { MetricsOverview } from './MetricsOverview';
 import { CostTracker, Cost } from './CostTracker';
-import { DailyTracker } from './DailyTracker';
 import { ProgressVisualization } from './ProgressVisualization';
 import { MotivationalHeader } from './MotivationalHeader';
-import { useProgressTracking } from '@/hooks/useProgressTracking';
-import { MonthlyGoals } from '@/types/dashboard';
-
-// MonthlyGoals interface moved to types/dashboard.ts
+import { useTrackingData } from '@/hooks/useTrackingData';
 
 const MONTHS = [
-  'Aug 2025', 'Sep 2025', 'Oct 2025', 'Nov 2025', 'Dec 2025',
-  'Jan 2026', 'Feb 2026', 'Mar 2026', 'Apr 2026', 'May 2026', 'Jun 2026', 'Jul 2026'
+  '2024-08', '2024-09', '2024-10', '2024-11', '2024-12',
+  '2025-01', '2025-02', '2025-03', '2025-04', '2025-05', '2025-06', '2025-07'
 ];
 
 export const Dashboard = () => {
-  const [selectedMonth, setSelectedMonth] = useState('Aug 2025');
-  const [goals, setGoals] = useState<Record<string, MonthlyGoals>>({});
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [costs, setCosts] = useState<Record<string, Cost[]>>({});
-  const [dashboardView, setDashboardView] = useState<'goals' | 'tracking' | 'ai-strategy'>('tracking');
+  const [dashboardView, setDashboardView] = useState<'planning' | 'tracking' | 'ai-strategy'>('tracking');
 
-  // Initialize default goals for all months
-  useEffect(() => {
-    const defaultGoals: Record<string, MonthlyGoals> = {};
-    MONTHS.forEach(month => {
-      defaultGoals[month] = {
-        month,
-        grossRevenue: 50000,
-        totalCosts: 30000,
-        siteVisits: 10000,
-        socialFollowers: 5000,
-        prArticles: 5,
-        workshopCustomers: 100,
-        advisoryCustomers: 10
-      };
-    });
-    setGoals(defaultGoals);
-  }, []);
-
-  const currentGoals = goals[selectedMonth] || {
-    month: selectedMonth,
-    grossRevenue: 0,
-    totalCosts: 0,
-    siteVisits: 0,
-    socialFollowers: 0,
-    prArticles: 0,
-    workshopCustomers: 0,
-    advisoryCustomers: 0
-  };
-
-  const updateGoal = (field: keyof MonthlyGoals, value: number | string) => {
-    setGoals(prev => ({
-      ...prev,
-      [selectedMonth]: {
-        ...prev[selectedMonth],
-        [field]: value
-      }
-    }));
-  };
+  // Use the new tracking data hook
+  const {
+    monthlyGoals,
+    monthlySnapshots,
+    dailyProgress,
+    todaysProgress,
+    metricsProgress,
+    overallScore,
+    loading,
+    updateMonthlyGoals,
+    updateMonthlySnapshots,
+    updateDailyProgress
+  } = useTrackingData(selectedMonth);
 
   const updateCosts = (newCosts: Cost[]) => {
     setCosts(prev => ({
@@ -81,19 +54,6 @@ export const Dashboard = () => {
   const currentCosts = costs[selectedMonth] || [];
   const totalCosts = currentCosts.reduce((sum, cost) => sum + cost.amount, 0);
 
-  // Initialize progress tracking
-  const {
-    todaysActuals,
-    metricsProgress,
-    streakData,
-    achievements,
-    overallScore,
-    motivationalMessage,
-    todaysWins,
-    monthProgress,
-    updateDailyActuals,
-  } = useProgressTracking(currentGoals);
-
 
   const getMetricStatus = (current: number, target: number) => {
     const ratio = current / target;
@@ -102,8 +62,15 @@ export const Dashboard = () => {
     return { status: 'destructive', icon: TrendingDown, message: 'Below target' };
   };
 
-  const netProfit = currentGoals.grossRevenue - totalCosts;
-  const profitMargin = currentGoals.grossRevenue > 0 ? (netProfit / currentGoals.grossRevenue) * 100 : 0;
+  const netProfit = (monthlyGoals?.revenue_target || 0) - totalCosts;
+  const profitMargin = (monthlyGoals?.revenue_target || 0) > 0 ? (netProfit / (monthlyGoals?.revenue_target || 1)) * 100 : 0;
+
+  // Format month for display
+  const formatMonth = (month: string) => {
+    const [year, monthNum] = month.split('-');
+    const date = new Date(parseInt(year), parseInt(monthNum) - 1);
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -124,6 +91,19 @@ export const Dashboard = () => {
             </div>
           </div>
           <div className="flex items-center space-x-3">
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-48 bg-input border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MONTHS.map(month => (
+                  <SelectItem key={month} value={month}>
+                    {formatMonth(month)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
             {/* View Toggle */}
             <div className="flex items-center bg-muted rounded-lg p-1">
               <Button
@@ -136,13 +116,13 @@ export const Dashboard = () => {
                 Daily Tracking
               </Button>
               <Button
-                variant={dashboardView === 'goals' ? 'default' : 'ghost'}
+                variant={dashboardView === 'planning' ? 'default' : 'ghost'}
                 size="sm"
-                onClick={() => setDashboardView('goals')}
+                onClick={() => setDashboardView('planning')}
                 className="text-xs"
               >
-                <Target className="w-3 h-3 mr-1" />
-                Goal Setting
+                <Settings className="w-3 h-3 mr-1" />
+                Planning
               </Button>
               <Button
                 variant={dashboardView === 'ai-strategy' ? 'default' : 'ghost'}
@@ -158,123 +138,200 @@ export const Dashboard = () => {
         </div>
 
         {/* Motivational Header - Only show in tracking view */}
-        {dashboardView === 'tracking' && (
+        {dashboardView === 'tracking' && !loading && (
           <MotivationalHeader
-            streakData={streakData}
-            achievements={achievements}
+            streakData={{
+              currentStreak: dailyProgress.length,
+              bestStreak: dailyProgress.length,
+              totalDaysTracked: dailyProgress.length,
+              lastUpdated: new Date().toISOString()
+            }}
+            achievements={[]}
             overallScore={overallScore}
-            todaysWins={todaysWins}
-            monthProgress={monthProgress}
-            motivationalMessage={motivationalMessage}
+            todaysWins={3}
+            monthProgress={85}
+            motivationalMessage="Keep up the great work! Every step forward counts toward your success."
           />
         )}
 
         {/* Dynamic Content Based on View */}
-        {dashboardView === 'goals' ? (
-          /* Goal Setting View */
-          <Card className="border-border bg-card">
-            <CardHeader>
-              <CardTitle className="flex items-center text-card-foreground">
-                <Target className="w-5 h-5 mr-2 text-primary" />
-                Monthly Goal Setting
-              </CardTitle>
-              <CardDescription>Select month and set your business targets (Aug 2025 - Jul 2026)</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-4 mb-6">
-                <Label htmlFor="month-select" className="text-sm font-medium">Month:</Label>
-                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                  <SelectTrigger className="w-48 bg-input border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MONTHS.map(month => (
-                      <SelectItem key={month} value={month}>{month}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Badge variant="outline" className="ml-auto">
-                  Net Profit: ${netProfit.toLocaleString()} ({profitMargin.toFixed(1)}%)
-                </Badge>
-              </div>
+        {dashboardView === 'planning' && !loading ? (
+          /* Planning View */
+          <div className="space-y-8">
+            <RevenueGoalsSetting 
+              goals={monthlyGoals}
+              onUpdateGoals={updateMonthlyGoals}
+              selectedMonth={selectedMonth}
+            />
+            
+            <BusinessDevelopmentGoals 
+              goals={monthlyGoals}
+              onUpdateGoals={updateMonthlyGoals}
+              selectedMonth={selectedMonth}
+            />
+            
+            <CurrentStateTracking 
+              snapshots={monthlySnapshots}
+              onUpdateSnapshots={updateMonthlySnapshots}
+              selectedMonth={selectedMonth}
+            />
 
-              <GoalTracker 
-                goals={currentGoals}
-                onUpdateGoal={updateGoal}
-              />
-            </CardContent>
-          </Card>
-        ) : dashboardView === 'tracking' ? (
+            {/* Financial Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Revenue Target</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-primary">
+                    ${(monthlyGoals?.revenue_target || 0).toLocaleString()}
+                  </div>
+                  <p className="text-sm text-muted-foreground">Monthly Goal</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Cost Budget</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600">
+                    ${(monthlyGoals?.cost_target || 0).toLocaleString()}
+                  </div>
+                  <p className="text-sm text-muted-foreground">Monthly Budget</p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Net Profit</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    ${netProfit.toLocaleString()}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {profitMargin.toFixed(1)}% margin
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        ) : dashboardView === 'tracking' && !loading ? (
           /* Daily Tracking View */
           <div className="space-y-6">
-            {/* Month Selection Bar */}
-            <div className="flex items-center justify-between bg-card border border-border rounded-lg p-4">
-              <div className="flex items-center space-x-4">
-                <Label htmlFor="month-select" className="text-sm font-medium">Tracking Month:</Label>
-                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                  <SelectTrigger className="w-48 bg-input border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MONTHS.map(month => (
-                      <SelectItem key={month} value={month}>{month}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Badge variant="outline" className="ml-auto">
-                Net Profit: ${netProfit.toLocaleString()} ({profitMargin.toFixed(1)}%)
-              </Badge>
-            </div>
-
-            {/* Quick AI Insight */}
             <QuickAIInsight currentMetrics={{
-              currentGoals,
-              todaysActuals,
+              currentGoals: {
+                month: selectedMonth,
+                grossRevenue: monthlyGoals?.revenue_target || 0,
+                totalCosts: monthlyGoals?.cost_target || 0,
+                siteVisits: monthlySnapshots?.site_visits || 0,
+                socialFollowers: monthlySnapshots?.social_followers || 0,
+                prArticles: monthlyGoals?.pr_target || 0,
+                workshopCustomers: monthlyGoals?.workshops_target || 0,
+                advisoryCustomers: monthlyGoals?.advisory_target || 0
+              },
+              todaysActuals: {
+                date: new Date().toISOString().split('T')[0],
+                month: selectedMonth,
+                grossRevenue: todaysProgress?.revenue_progress || 0,
+                totalCosts: todaysProgress?.cost_progress || 0,
+                siteVisits: monthlySnapshots?.site_visits || 0,
+                socialFollowers: monthlySnapshots?.social_followers || 0,
+                prArticles: todaysProgress?.pr_progress || 0,
+                workshopCustomers: todaysProgress?.workshops_progress || 0,
+                advisoryCustomers: todaysProgress?.advisory_progress || 0
+              },
               overallScore,
-              monthProgress,
+              monthProgress: 85,
               totalCosts,
               netProfit,
               profitMargin
             }} />
 
-            {/* Daily Tracker */}
-            <DailyTracker
-              currentGoals={currentGoals}
-              dailyActuals={todaysActuals}
-              onUpdateDaily={updateDailyActuals}
-            />
-
-            {/* Progress Visualization */}
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Calendar className="w-5 h-5 text-primary" />
-                <h3 className="text-lg font-semibold text-foreground">Today's Progress</h3>
-              </div>
-              <ProgressVisualization metrics={metricsProgress} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <DailyProgressTracker 
+                todaysProgress={todaysProgress}
+                onUpdateProgress={updateDailyProgress}
+              />
+              
+              <CurrentStateTracking 
+                snapshots={monthlySnapshots}
+                onUpdateSnapshots={updateMonthlySnapshots}
+                selectedMonth={selectedMonth}
+              />
             </div>
+
+            <ProgressVisualization 
+              metrics={metricsProgress}
+            />
           </div>
-        ) : (
+        ) : dashboardView === 'ai-strategy' ? (
           /* AI Strategy Hub */
           <AIStrategyHub 
             currentMetrics={{
-              currentGoals,
-              todaysActuals,
+              currentGoals: {
+                month: selectedMonth,
+                grossRevenue: monthlyGoals?.revenue_target || 0,
+                totalCosts: monthlyGoals?.cost_target || 0,
+                siteVisits: monthlySnapshots?.site_visits || 0,
+                socialFollowers: monthlySnapshots?.social_followers || 0,
+                prArticles: monthlyGoals?.pr_target || 0,
+                workshopCustomers: monthlyGoals?.workshops_target || 0,
+                advisoryCustomers: monthlyGoals?.advisory_target || 0
+              },
+              todaysActuals: {
+                date: new Date().toISOString().split('T')[0],
+                month: selectedMonth,
+                grossRevenue: todaysProgress?.revenue_progress || 0,
+                totalCosts: todaysProgress?.cost_progress || 0,
+                siteVisits: monthlySnapshots?.site_visits || 0,
+                socialFollowers: monthlySnapshots?.social_followers || 0,
+                prArticles: todaysProgress?.pr_progress || 0,
+                workshopCustomers: todaysProgress?.workshops_progress || 0,
+                advisoryCustomers: todaysProgress?.advisory_progress || 0
+              },
               overallScore,
-              monthProgress,
+              monthProgress: 85,
               totalCosts,
               netProfit,
               profitMargin
             }}
-            monthlyGoals={currentGoals}
+            monthlyGoals={{
+              month: selectedMonth,
+              grossRevenue: monthlyGoals?.revenue_target || 0,
+              totalCosts: monthlyGoals?.cost_target || 0,
+              siteVisits: monthlySnapshots?.site_visits || 0,
+              socialFollowers: monthlySnapshots?.social_followers || 0,
+              prArticles: monthlyGoals?.pr_target || 0,
+              workshopCustomers: monthlyGoals?.workshops_target || 0,
+              advisoryCustomers: monthlyGoals?.advisory_target || 0
+            }}
           />
+        ) : null}
+
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-lg text-muted-foreground">Loading tracking data...</div>
+          </div>
         )}
 
         {/* Metrics Overview - Only show in tracking view */}
-        {dashboardView === 'tracking' && <MetricsOverview goals={currentGoals} />}
+        {dashboardView === 'tracking' && !loading && (
+          <MetricsOverview goals={{
+            month: selectedMonth,
+            grossRevenue: monthlyGoals?.revenue_target || 0,
+            totalCosts: monthlyGoals?.cost_target || 0,
+            siteVisits: monthlySnapshots?.site_visits || 0,
+            socialFollowers: monthlySnapshots?.social_followers || 0,
+            prArticles: monthlyGoals?.pr_target || 0,
+            workshopCustomers: monthlyGoals?.workshops_target || 0,
+            advisoryCustomers: monthlyGoals?.advisory_target || 0
+          }} />
+        )}
 
         {/* Analytics Tabs - Only show in tracking view */}
-        {dashboardView === 'tracking' && (
+        {dashboardView === 'tracking' && !loading && (
           <Tabs defaultValue="analytics" className="space-y-4">
           <TabsList className="grid w-full grid-cols-3 bg-muted">
             <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
@@ -297,7 +354,11 @@ export const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={Object.values(goals).slice(0, 6)}>
+                    <LineChart data={[
+                      { month: 'Jan', revenue: 8500, costs: 2800 },
+                      { month: 'Feb', revenue: 9200, costs: 3100 },
+                      { month: 'Current', revenue: monthlyGoals?.revenue_target || 0, costs: monthlyGoals?.cost_target || 0 }
+                    ]}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
                       <YAxis stroke="hsl(var(--muted-foreground))" />
@@ -310,14 +371,14 @@ export const Dashboard = () => {
                       />
                       <Line 
                         type="monotone" 
-                        dataKey="grossRevenue" 
+                        dataKey="revenue" 
                         stroke="hsl(var(--primary))" 
                         strokeWidth={3}
                         name="Revenue"
                       />
                       <Line 
                         type="monotone" 
-                        dataKey="totalCosts" 
+                        dataKey="costs" 
                         stroke="hsl(var(--destructive))" 
                         strokeWidth={3}
                         name="Costs"
@@ -329,13 +390,18 @@ export const Dashboard = () => {
 
               <Card className="border-border bg-card">
                 <CardHeader>
-                  <CardTitle className="text-card-foreground">Customer Acquisition</CardTitle>
+                  <CardTitle className="text-card-foreground">Business Development Progress</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={Object.values(goals).slice(0, 6)}>
+                    <BarChart data={[
+                      { category: 'Workshops', target: monthlyGoals?.workshops_target || 0, current: dailyProgress.reduce((sum, day) => sum + (day.workshops_progress || 0), 0) },
+                      { category: 'Advisory', target: monthlyGoals?.advisory_target || 0, current: dailyProgress.reduce((sum, day) => sum + (day.advisory_progress || 0), 0) },
+                      { category: 'Lectures', target: monthlyGoals?.lectures_target || 0, current: dailyProgress.reduce((sum, day) => sum + (day.lectures_progress || 0), 0) },
+                      { category: 'PR', target: monthlyGoals?.pr_target || 0, current: dailyProgress.reduce((sum, day) => sum + (day.pr_progress || 0), 0) }
+                    ]}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                      <XAxis dataKey="category" stroke="hsl(var(--muted-foreground))" />
                       <YAxis stroke="hsl(var(--muted-foreground))" />
                       <Tooltip 
                         contentStyle={{ 
@@ -344,8 +410,8 @@ export const Dashboard = () => {
                           borderRadius: '8px'
                         }} 
                       />
-                      <Bar dataKey="workshopCustomers" fill="hsl(var(--primary))" name="Workshop" />
-                      <Bar dataKey="advisoryCustomers" fill="hsl(var(--accent))" name="Advisory" />
+                      <Bar dataKey="target" fill="hsl(var(--muted))" name="Target" />
+                      <Bar dataKey="current" fill="hsl(var(--primary))" name="Current" />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -365,34 +431,34 @@ export const Dashboard = () => {
             <Card className="border-border bg-card">
               <CardHeader>
                 <CardTitle className="flex items-center text-card-foreground">
-                  <Lightbulb className="w-5 h-5 mr-2 text-primary" />
-                  Strategic Business Projections
+                  <Target className="w-5 h-5 mr-2 text-primary" />
+                  Monthly Projections
                 </CardTitle>
                 <CardDescription>
-                  AI-powered forecasting and strategic recommendations
+                  Performance insights and forecasting
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
-                    <h4 className="font-semibold text-foreground mb-2">12-Month Revenue Projection</h4>
-                    <p className="text-muted-foreground text-sm">
-                      Based on current growth patterns, projected annual revenue: ${(currentGoals.grossRevenue * 12).toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
-                    <h4 className="font-semibold text-foreground mb-2">Customer Lifetime Value</h4>
-                    <p className="text-muted-foreground text-sm">
-                      Workshop CLV: ${((currentGoals.grossRevenue * 0.6) / currentGoals.workshopCustomers * 6).toFixed(0)} | 
-                      Advisory CLV: ${((currentGoals.grossRevenue * 0.4) / currentGoals.advisoryCustomers * 12).toFixed(0)}
-                    </p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-muted/50 border border-border">
-                    <h4 className="font-semibold text-foreground mb-2">Market Opportunity</h4>
-                    <p className="text-muted-foreground text-sm">
-                      Site conversion rate: {((currentGoals.workshopCustomers + currentGoals.advisoryCustomers) / currentGoals.siteVisits * 100).toFixed(2)}% - 
-                      Industry benchmark: 2-3%
-                    </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 border rounded-lg">
+                      <h4 className="font-semibold text-lg">Revenue Projection</h4>
+                      <p className="text-2xl font-bold text-primary">
+                        ${Math.round((monthlyGoals?.revenue_target || 0) * (overallScore / 100)).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Based on current progress ({overallScore}%)
+                      </p>
+                    </div>
+                    <div className="p-4 border rounded-lg">
+                      <h4 className="font-semibold text-lg">Growth Rate</h4>
+                      <p className="text-2xl font-bold text-green-600">
+                        +{((overallScore - 70) / 70 * 100).toFixed(1)}%
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Compared to baseline performance
+                      </p>
+                    </div>
                   </div>
                 </div>
               </CardContent>
