@@ -74,18 +74,22 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
 
   const fetchIntegration = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data, error } = await supabase
         .from('sheets_integrations')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         throw error;
       }
 
-      setIntegration(data);
+      // Get the most recent integration record
+      setIntegration(data && data.length > 0 ? data[0] : null);
     } catch (error: any) {
       console.error('Error fetching integration:', error);
     }
