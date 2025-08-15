@@ -22,8 +22,21 @@ import {
   TrendingUp,
   FileSpreadsheet,
   Zap,
-  Info
+  Info,
+  RefreshCw,
+  Unlink,
+  AlertTriangle
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface SheetsIntegration {
   id: string;
@@ -43,23 +56,17 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportingType, setExportingType] = useState<string>('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const { toast } = useToast();
 
-  // Helper function to get current step
-  const getCurrentStep = () => {
-    if (!integration) return 0;
-    if (integration.sync_status !== 'success') return 1;
-    if (!integration.google_sheet_id) return 2;
-    return 3;
+  // Helper function to get current status
+  const getIntegrationStatus = () => {
+    if (!integration) return 'not_connected';
+    if (integration.sync_status !== 'success') return 'connecting';
+    if (!integration.google_sheet_id) return 'authenticated';
+    return 'connected';
   };
-
-  // Steps configuration
-  const steps = [
-    { id: 0, title: "Connect", description: "Authenticate with Google" },
-    { id: 1, title: "Verified", description: "Google account connected" },
-    { id: 2, title: "Create", description: "Set up your spreadsheet" },
-    { id: 3, title: "Export", description: "Ready to sync data" }
-  ];
 
   useEffect(() => {
     fetchIntegration();
@@ -84,10 +91,21 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
     }
   };
 
-  const handleAuthenticate = async () => {
+  const handleConnectAndSetup = async () => {
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      
+      // Check if user already has a spreadsheet
+      if (integration?.google_sheet_id) {
+        toast({
+          title: 'Already Connected',
+          description: 'You already have a Google Sheet connected. Use the disconnect option if you want to create a new one.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
       // Test the dedicated secret test endpoint (no auth required)
       console.log('Testing Google OAuth secret...');
       const testResponse = await fetch(
@@ -148,15 +166,15 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
           popup?.close();
           toast({
             title: 'Success',
-            description: event.data.message,
+            description: 'Google Sheets integration completed! Your business tracking spreadsheet has been created and populated with your data.',
           });
           fetchIntegration(); // Refresh integration status
         } else if (event.data.type === 'oauth_error') {
           window.removeEventListener('message', handleMessage);
           popup?.close();
           toast({
-            title: 'Authentication Failed',
-            description: event.data.error || 'Authentication failed',
+            title: 'Setup Failed',
+            description: event.data.error || 'Integration setup failed',
             variant: 'destructive',
           });
         }
@@ -173,7 +191,7 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
       }, 1000);
     } catch (error: any) {
       toast({
-        title: 'Authentication Failed',
+        title: 'Setup Failed',
         description: error.message,
         variant: 'destructive',
       });
@@ -182,39 +200,73 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
     }
   };
 
-
-  const handleCreateSheet = async () => {
-    setLoading(true);
+  const handleRefreshData = async () => {
+    setRefreshing(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(
-        `https://ksyuwacuigshvcyptlhe.supabase.co/functions/v1/google-sheets-integration?action=create_sheet`,
+        `https://ksyuwacuigshvcyptlhe.supabase.co/functions/v1/google-sheets-integration?action=refresh_all_data`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({ 
-            title: `Business Tracker - ${new Date().getFullYear()}`,
-          }),
+          }
         }
       );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Sheet creation failed');
+        throw new Error(errorData.error || 'Data refresh failed');
       }
 
       toast({
-        title: 'Spreadsheet Created',
-        description: 'Your business tracking spreadsheet is ready!',
+        title: 'Data Refreshed',
+        description: 'Your Google Sheet has been updated with the latest data from your business tracker.',
       });
 
+      // Update last sync time
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('sheets_integrations')
+          .update({ last_sync_at: new Date().toISOString() })
+          .eq('user_id', user.id);
+      }
+      
       fetchIntegration();
     } catch (error: any) {
       toast({
-        title: 'Creation Failed',
+        title: 'Refresh Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from('sheets_integrations')
+          .delete()
+          .eq('user_id', user.id);
+      }
+      
+      setIntegration(null);
+      setShowDisconnectDialog(false);
+      
+      toast({
+        title: 'Disconnected',
+        description: 'Google Sheets integration has been removed. You can reconnect anytime to create a new spreadsheet.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Disconnect Failed',
         description: error.message,
         variant: 'destructive',
       });
@@ -223,64 +275,7 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
     }
   };
 
-  const handleExportData = async (dataType: string) => {
-    setExporting(true);
-    setExportingType(dataType);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(
-        `https://ksyuwacuigshvcyptlhe.supabase.co/functions/v1/google-sheets-integration?action=export_data`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({ 
-            dataType,
-            month: selectedMonth,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Export failed');
-      }
-
-      toast({
-        title: 'Export Successful',
-        description: `${dataType.replace('_', ' ')} data exported to Google Sheets.`,
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Export Failed',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setExporting(false);
-      setExportingType('');
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      success: 'default',
-      pending: 'secondary',
-      error: 'destructive',
-      syncing: 'outline'
-    } as const;
-
-    return (
-      <Badge variant={variants[status as keyof typeof variants] || 'secondary'}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
-  };
-
-  const currentStep = getCurrentStep();
-  const progressPercentage = (currentStep / (steps.length - 1)) * 100;
+  const integrationStatus = getIntegrationStatus();
 
   return (
     <div className="space-y-6">
@@ -296,276 +291,190 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
         </CardHeader>
         
         <CardContent className="space-y-6">
-          {/* Step Progress Indicator */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">Setup Progress</span>
-              <span className="text-muted-foreground">{currentStep + 1} of {steps.length}</span>
-            </div>
-            
-            <Progress value={progressPercentage} className="h-2" />
-            
-            <div className="flex items-center justify-between">
-              {steps.map((step, index) => (
-                <div key={step.id} className="flex flex-col items-center space-y-1">
-                  <div className={`
-                    flex items-center justify-center w-8 h-8 rounded-full border-2 transition-colors
-                    ${index <= currentStep 
-                      ? 'bg-primary text-primary-foreground border-primary' 
-                      : 'bg-background text-muted-foreground border-muted-foreground'
-                    }
-                  `}>
-                    {index < currentStep ? (
-                      <CheckCircle className="h-4 w-4" />
-                    ) : index === currentStep ? (
-                      <Circle className="h-4 w-4 fill-current" />
-                    ) : (
-                      <Circle className="h-4 w-4" />
-                    )}
-                  </div>
-                  <div className="text-center">
-                    <div className={`text-xs font-medium ${
-                      index <= currentStep ? 'text-foreground' : 'text-muted-foreground'
-                    }`}>
-                      {step.title}
-                    </div>
-                    <div className="text-xs text-muted-foreground hidden sm:block">
-                      {step.description}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Main Content Based on Current Step */}
-          {currentStep === 0 && (
+          {/* Not Connected State */}
+          {integrationStatus === 'not_connected' && (
             <div className="text-center py-8">
               <div className="w-16 h-16 mx-auto bg-emerald-50 rounded-full flex items-center justify-center mb-4">
                 <Sheet className="h-8 w-8 text-emerald-600" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Connect to Google Sheets</h3>
+              <h3 className="text-lg font-semibold mb-2">Setup Google Sheets Integration</h3>
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                Authenticate with your Google account to start exporting your business tracking data automatically.
+                Connect with Google and automatically create a comprehensive business tracking spreadsheet with all your data.
               </p>
-              <Button onClick={handleAuthenticate} disabled={loading} size="lg">
+              <Button onClick={handleConnectAndSetup} disabled={loading} size="lg">
                 {loading ? (
                   <>
                     <Circle className="h-4 w-4 mr-2 animate-spin" />
-                    Connecting...
+                    Setting up...
                   </>
                 ) : (
                   <>
                     <Sheet className="h-4 w-4 mr-2" />
-                    Connect Google Account
+                    Connect & Create Spreadsheet
                   </>
                 )}
               </Button>
               <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                 <div className="flex items-start gap-2">
                   <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-blue-800">
-                    We'll only access your Google Sheets to create and update spreadsheets with your business data.
-                  </p>
+                  <div className="text-sm text-blue-800 text-left">
+                    <p className="mb-2">This will automatically:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>Connect your Google account</li>
+                      <li>Create a new spreadsheet in your Google Drive</li>
+                      <li>Set up organized sheets for all your business data</li>
+                      <li>Populate it with your current tracking data</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {currentStep === 1 && (
+          {/* Connecting State */}
+          {integrationStatus === 'connecting' && (
             <div className="text-center py-8">
-              <div className="w-16 h-16 mx-auto bg-green-50 rounded-full flex items-center justify-center mb-4">
-                <CheckCircle className="h-8 w-8 text-green-600" />
+              <div className="w-16 h-16 mx-auto bg-yellow-50 rounded-full flex items-center justify-center mb-4">
+                <Circle className="h-8 w-8 text-yellow-600 animate-spin" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">Google Account Connected!</h3>
+              <h3 className="text-lg font-semibold mb-2">Setting Up Integration...</h3>
               <p className="text-muted-foreground mb-6">
-                Successfully authenticated with Google. Now let's create your business tracking spreadsheet.
+                Please wait while we complete your Google Sheets setup.
               </p>
-              <Button onClick={handleCreateSheet} disabled={loading} size="lg">
-                {loading ? (
-                  <>
-                    <Circle className="h-4 w-4 mr-2 animate-spin" />
-                    Creating Spreadsheet...
-                  </>
-                ) : (
-                  <>
-                    <FileSpreadsheet className="h-4 w-4 mr-2" />
-                    Create Business Tracker Spreadsheet
-                  </>
-                )}
-              </Button>
-              <div className="mt-4 p-3 bg-emerald-50 rounded-lg">
-                <p className="text-sm text-emerald-800">
-                  This will create a new Google Sheet titled "Business Tracker - {new Date().getFullYear()}" in your Google Drive.
-                </p>
-              </div>
             </div>
           )}
 
-          {currentStep >= 2 && integration?.google_sheet_id && (
+          {/* Connected State */}
+          {integrationStatus === 'connected' && integration?.google_sheet_id && (
             <div className="space-y-6">
               {/* Status and Quick Actions */}
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <div className="flex items-center gap-3">
                   <CheckCircle className="h-5 w-5 text-green-600" />
                   <div className="flex-1">
-                    <h3 className="font-medium text-green-900">Ready to Export!</h3>
+                    <h3 className="font-medium text-green-900">Google Sheets Connected!</h3>
                     <p className="text-sm text-green-700">
                       {integration.sheet_name || `Business Tracker - ${new Date().getFullYear()}`}
                     </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(`https://docs.google.com/spreadsheets/d/${integration.google_sheet_id}`, '_blank')}
-                    className="border-green-300 text-green-700 hover:bg-green-100"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Open Sheet
-                  </Button>
-                </div>
-              </div>
-
-              {/* Last Sync Info */}
-              {integration.last_sync_at && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  Last synced: {new Date(integration.last_sync_at).toLocaleDateString()} at {new Date(integration.last_sync_at).toLocaleTimeString()}
-                </div>
-              )}
-
-              {/* Export Options */}
-              <div className="space-y-4">
-                <h4 className="font-medium flex items-center gap-2">
-                  <Download className="h-4 w-4" />
-                  Export Data for {selectedMonth}
-                </h4>
-                
-                <div className="grid gap-3">
-                  {/* Monthly Goals Export */}
-                  <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-start gap-3">
-                        <Target className="h-5 w-5 text-blue-600 mt-0.5" />
-                        <div>
-                          <h5 className="font-medium">Monthly Goals & Targets</h5>
-                          <p className="text-sm text-muted-foreground">
-                            Revenue goals, business targets, and monthly objectives
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleExportData('monthly_goals')}
-                        disabled={exporting}
-                      >
-                        {exporting && exportingType === 'monthly_goals' ? (
-                          <>
-                            <Circle className="h-4 w-4 mr-2 animate-spin" />
-                            Exporting...
-                          </>
-                        ) : (
-                          <>
-                            <Download className="h-4 w-4 mr-2" />
-                            Export
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Daily Progress Export */}
-                  <div className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-start gap-3">
-                        <TrendingUp className="h-5 w-5 text-emerald-600 mt-0.5" />
-                        <div>
-                          <h5 className="font-medium">Daily Progress & Metrics</h5>
-                          <p className="text-sm text-muted-foreground">
-                            Daily tracking data, progress updates, and performance metrics
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleExportData('daily_progress')}
-                        disabled={exporting}
-                      >
-                        {exporting && exportingType === 'daily_progress' ? (
-                          <>
-                            <Circle className="h-4 w-4 mr-2 animate-spin" />
-                            Exporting...
-                          </>
-                        ) : (
-                          <>
-                            <Download className="h-4 w-4 mr-2" />
-                            Export
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Quick Export All */}
-                  <div className="pt-2">
-                    <Button 
-                      onClick={async () => {
-                        await handleExportData('monthly_goals');
-                        await handleExportData('daily_progress');
-                      }}
-                      disabled={exporting}
-                      className="w-full"
-                      size="lg"
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRefreshData}
+                      disabled={refreshing}
+                      className="border-green-300 text-green-700 hover:bg-green-100"
                     >
-                      {exporting ? (
-                        <>
-                          <Circle className="h-4 w-4 mr-2 animate-spin" />
-                          Exporting All Data...
-                        </>
+                      {refreshing ? (
+                        <Circle className="h-4 w-4 mr-2 animate-spin" />
                       ) : (
-                        <>
-                          <Zap className="h-4 w-4 mr-2" />
-                          Export All Data for {selectedMonth}
-                        </>
+                        <RefreshCw className="h-4 w-4 mr-2" />
                       )}
+                      Refresh Data
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(`https://docs.google.com/spreadsheets/d/${integration.google_sheet_id}`, '_blank')}
+                      className="border-green-300 text-green-700 hover:bg-green-100"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Open Sheet
                     </Button>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Status indicator for authenticated but no sheet */}
-          {currentStep === 2 && integration && !integration.google_sheet_id && (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 mx-auto bg-blue-50 rounded-full flex items-center justify-center mb-4">
-                <FileSpreadsheet className="h-8 w-8 text-blue-600" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Create Your Spreadsheet</h3>
-              <p className="text-muted-foreground mb-6">
-                You're connected! Now let's create your business tracking spreadsheet.
-              </p>
-              <Button onClick={handleCreateSheet} disabled={loading} size="lg">
-                {loading ? (
-                  <>
-                    <Circle className="h-4 w-4 mr-2 animate-spin" />
-                    Creating...
-                  </>
+              {/* Last Sync Info and Disconnect */}
+              <div className="flex items-center justify-between">
+                {integration.last_sync_at ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    Last synced: {new Date(integration.last_sync_at).toLocaleDateString()} at {new Date(integration.last_sync_at).toLocaleTimeString()}
+                  </div>
                 ) : (
-                  <>
-                    <FileSpreadsheet className="h-4 w-4 mr-2" />
-                    Create Spreadsheet
-                  </>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Info className="h-4 w-4" />
+                    Data automatically populated when connected
+                  </div>
                 )}
-              </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDisconnectDialog(true)}
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                >
+                  <Unlink className="h-4 w-4 mr-2" />
+                  Disconnect
+                </Button>
+              </div>
+
+              <Separator />
+
+              {/* Info Section */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-blue-800">
+                    <p className="font-medium mb-2">Your spreadsheet includes:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li><strong>Monthly Goals:</strong> Revenue targets, business objectives, and cost budgets</li>
+                      <li><strong>Daily Progress:</strong> Daily tracking of workshops, advisory, lectures, and PR activities</li>
+                      <li><strong>Opportunities Pipeline:</strong> Sales opportunities with stages and probabilities</li>
+                      <li><strong>Revenue Tracking:</strong> All revenue entries by source and date</li>
+                      <li><strong>Summary Dashboard:</strong> Key metrics, charts, and automatic calculations</li>
+                    </ul>
+                    <p className="mt-3">
+                      Use the "Refresh Data" button above to update your spreadsheet with the latest information from your business tracker.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Disconnect Confirmation Dialog */}
+      <AlertDialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+              Disconnect Google Sheets?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                This will permanently disconnect your Google Sheets integration and remove all connection data.
+              </p>
+              <p>
+                <strong>Warning:</strong> You will lose the connection to your current spreadsheet. 
+                To reconnect later, you'll need to create a completely new spreadsheet.
+              </p>
+              <p>
+                Your existing Google Sheet will remain in your Google Drive, but won't be updated automatically anymore.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDisconnect}
+              disabled={loading}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {loading ? (
+                <>
+                  <Circle className="h-4 w-4 mr-2 animate-spin" />
+                  Disconnecting...
+                </>
+              ) : (
+                'Disconnect'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

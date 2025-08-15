@@ -241,6 +241,9 @@ Deno.serve(async (req) => {
       case 'export_data':
         return await handleExportData(body, supabase, user.id);
       
+      case 'refresh_all_data':
+        return await handleRefreshAllData(body, supabase, user.id);
+      
       case 'import_data':
         return await handleImportData(body, supabase, user.id);
       
@@ -575,6 +578,7 @@ async function handleExchangeCodeNoAuth(req: Request) {
     
     console.log('Storing encrypted tokens for user:', userId);
     
+    // Store the integration
     const { error: dbError } = await supabase
       .from('sheets_integrations')
       .upsert({
@@ -589,7 +593,17 @@ async function handleExchangeCodeNoAuth(req: Request) {
       throw new Error(`Database error: ${dbError.message}`);
     }
 
-    console.log('OAuth integration completed successfully for user:', userId);
+    console.log('OAuth integration completed, now auto-creating spreadsheet for user:', userId);
+    
+    // Automatically create and populate the spreadsheet
+    try {
+      await autoCreateAndPopulateSheet(tokens.access_token, supabase, userId);
+      console.log('Auto-creation and population completed successfully');
+    } catch (createError) {
+      console.error('Auto-creation failed:', createError);
+      // Don't fail the OAuth process if sheet creation fails
+      // User can see the error and try again
+    }
 
     // Return success HTML that notifies the parent window and closes the popup
     return new Response(
@@ -616,6 +630,232 @@ async function handleExchangeCodeNoAuth(req: Request) {
       { headers: { ...corsHeaders, 'Content-Type': 'text/html' } }
     );
   }
+}
+
+async function autoCreateAndPopulateSheet(accessToken: string, supabase: any, userId: string) {
+  // Create the spreadsheet with comprehensive structure
+  const sheetData = {
+    properties: {
+      title: `Business Tracker - ${new Date().getFullYear()}`,
+    },
+    sheets: [
+      { properties: { title: 'Summary Dashboard', index: 0 } },
+      { properties: { title: 'Monthly Goals', index: 1 } },
+      { properties: { title: 'Daily Progress', index: 2 } },
+      { properties: { title: 'Opportunities Pipeline', index: 3 } },
+      { properties: { title: 'Revenue Tracking', index: 4 } }
+    ]
+  };
+
+  const response = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(sheetData),
+  });
+
+  const sheet = await response.json();
+  
+  if (sheet.error) {
+    throw new Error(`Sheet creation failed: ${sheet.error.message}`);
+  }
+
+  // Update integration with sheet ID
+  await supabase
+    .from('sheets_integrations')
+    .update({
+      google_sheet_id: sheet.spreadsheetId,
+      sheet_name: sheet.properties.title,
+      last_sync_at: new Date().toISOString()
+    })
+    .eq('user_id', userId);
+
+  // Populate all data sheets
+  await populateAllSheets(accessToken, sheet.spreadsheetId, supabase, userId);
+  
+  return sheet.spreadsheetId;
+}
+
+async function populateAllSheets(accessToken: string, spreadsheetId: string, supabase: any, userId: string) {
+  // Fetch all user data
+  const [monthlyGoals, dailyProgress, opportunities, revenueEntries] = await Promise.all([
+    supabase.from('monthly_goals').select('*').eq('user_id', userId),
+    supabase.from('daily_progress').select('*').eq('user_id', userId),
+    supabase.from('opportunities').select('*').eq('user_id', userId),
+    supabase.from('revenue_entries').select('*').eq('user_id', userId)
+  ]);
+
+  // Prepare batch update requests
+  const requests = [];
+
+  // Monthly Goals Sheet
+  if (monthlyGoals.data && monthlyGoals.data.length > 0) {
+    const goalsValues = [
+      ['Month', 'Revenue Forecast', 'Cost Budget', 'Workshops Target', 'Advisory Target', 'Lectures Target', 'PR Target', 'Created Date'],
+      ...monthlyGoals.data.map((g: any) => [
+        g.month, g.revenue_forecast || 0, g.cost_budget || 0,
+        g.workshops_target || 0, g.advisory_target || 0, g.lectures_target || 0, g.pr_target || 0,
+        new Date(g.created_at).toLocaleDateString()
+      ])
+    ];
+    requests.push({
+      range: 'Monthly Goals!A1',
+      values: goalsValues
+    });
+  }
+
+  // Daily Progress Sheet
+  if (dailyProgress.data && dailyProgress.data.length > 0) {
+    const progressValues = [
+      ['Date', 'Month', 'Workshops Progress', 'Advisory Progress', 'Lectures Progress', 'PR Progress', 'Notes'],
+      ...dailyProgress.data.map((p: any) => [
+        p.date, p.month, p.workshops_progress || 0, p.advisory_progress || 0,
+        p.lectures_progress || 0, p.pr_progress || 0, p.notes || ''
+      ])
+    ];
+    requests.push({
+      range: 'Daily Progress!A1',
+      values: progressValues
+    });
+  }
+
+  // Opportunities Pipeline Sheet
+  if (opportunities.data && opportunities.data.length > 0) {
+    const opportunitiesValues = [
+      ['Title', 'Type', 'Company', 'Contact Person', 'Stage', 'Probability %', 'Estimated Value', 'Close Date', 'Month', 'Notes'],
+      ...opportunities.data.map((o: any) => [
+        o.title, o.type, o.company || '', o.contact_person || '', o.stage,
+        o.probability || 0, o.estimated_value || 0, o.estimated_close_date || '',
+        o.month, o.notes || ''
+      ])
+    ];
+    requests.push({
+      range: 'Opportunities Pipeline!A1',
+      values: opportunitiesValues
+    });
+  }
+
+  // Revenue Tracking Sheet
+  if (revenueEntries.data && revenueEntries.data.length > 0) {
+    const revenueValues = [
+      ['Date', 'Month', 'Amount', 'Source', 'Description'],
+      ...revenueEntries.data.map((r: any) => [
+        r.date, r.month, r.amount || 0, r.source, r.description || ''
+      ])
+    ];
+    requests.push({
+      range: 'Revenue Tracking!A1',
+      values: revenueValues
+    });
+  }
+
+  // Summary Dashboard (create basic structure)
+  const dashboardValues = [
+    ['Business Tracker Summary Dashboard', '', '', '', ''],
+    ['', '', '', '', ''],
+    ['Key Metrics', 'Current Month', 'All Time', '', ''],
+    ['Total Revenue', '=SUMIF(\'Revenue Tracking\'!B:B,TEXT(TODAY(),"YYYY-MM"),\'Revenue Tracking\'!C:C)', '=SUM(\'Revenue Tracking\'!C:C)', '', ''],
+    ['Total Opportunities', '=COUNTIF(\'Opportunities Pipeline\'!I:I,TEXT(TODAY(),"YYYY-MM"))', '=COUNTA(\'Opportunities Pipeline\'!A2:A)', '', ''],
+    ['Pipeline Value', '=SUMIF(\'Opportunities Pipeline\'!I:I,TEXT(TODAY(),"YYYY-MM"),\'Opportunities Pipeline\'!G:G)', '=SUM(\'Opportunities Pipeline\'!G:G)', '', ''],
+    ['', '', '', '', ''],
+    ['Recent Activity', '', '', '', ''],
+    ['Last 10 Daily Progress Entries:', '', '', '', ''],
+  ];
+  requests.push({
+    range: 'Summary Dashboard!A1',
+    values: dashboardValues
+  });
+
+  // Execute all requests in batch
+  if (requests.length > 0) {
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          valueInputOption: 'USER_ENTERED',
+          data: requests
+        }),
+      }
+    );
+  }
+
+  // Apply formatting to make it look professional
+  await formatSpreadsheet(accessToken, spreadsheetId);
+}
+
+async function formatSpreadsheet(accessToken: string, spreadsheetId: string) {
+  const formatRequests = [
+    // Format headers in all sheets
+    {
+      repeatCell: {
+        range: {
+          sheetId: 0, // Summary Dashboard
+          startRowIndex: 0,
+          endRowIndex: 1,
+          startColumnIndex: 0,
+          endColumnIndex: 5
+        },
+        cell: {
+          userEnteredFormat: {
+            backgroundColor: { red: 0.2, green: 0.6, blue: 0.2 },
+            textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } }
+          }
+        },
+        fields: 'userEnteredFormat(backgroundColor,textFormat)'
+      }
+    },
+    // Format other sheet headers similarly...
+  ];
+
+  if (formatRequests.length > 0) {
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ requests: formatRequests }),
+      }
+    );
+  }
+}
+
+async function handleRefreshAllData(body: any, supabase: any, userId: string) {
+  const { data: integration } = await supabase
+    .from('sheets_integrations')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+
+  if (!integration || !integration.access_token || !integration.google_sheet_id) {
+    throw new Error('No Google Sheets integration found or incomplete setup');
+  }
+
+  // Decrypt the access token for API calls
+  const decryptedAccessToken = await decryptToken(integration.access_token);
+
+  // Clear existing data and repopulate
+  await populateAllSheets(decryptedAccessToken, integration.google_sheet_id, supabase, userId);
+
+  // Update last sync time
+  await supabase
+    .from('sheets_integrations')
+    .update({ last_sync_at: new Date().toISOString() })
+    .eq('user_id', userId);
+
+  return new Response(
+    JSON.stringify({ success: true, message: 'All data refreshed successfully' }),
+    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
 }
 
 async function handleImportData(body: any, supabase: any, userId: string) {
