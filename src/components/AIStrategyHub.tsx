@@ -109,18 +109,47 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
 
     setIsLoading(true);
     try {
-      // Ensure we have a valid session before making the call
+      // Enhanced session validation and token refresh
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (sessionError || !session) {
+      if (sessionError) {
+        console.error('Session error:', sessionError);
         toast({
           title: "Authentication Error",
-          description: "Please refresh the page and try again.",
+          description: "Session validation failed. Please refresh the page and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!session || !session.access_token) {
+        console.error('No valid session or access token found');
+        toast({
+          title: "Authentication Required",
+          description: "Please refresh the page and log in again.",
           variant: "destructive",
         });
         return;
       }
 
+      // Check if token is about to expire (within 5 minutes)
+      const tokenExp = session.expires_at;
+      const now = Math.floor(Date.now() / 1000);
+      if (tokenExp && (tokenExp - now) < 300) {
+        console.log('Token expiring soon, refreshing...');
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          console.error('Token refresh failed:', refreshError);
+          toast({
+            title: "Session Expired",
+            description: "Please refresh the page and log in again.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+
+      console.log('Making strategic AI function call with valid session');
       const { data, error } = await supabase.functions.invoke('ai-strategic-analysis', {
         body: {
           question: currentQuestion,
@@ -135,15 +164,27 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
       });
 
       if (error) {
-        // Handle specific error types
-        if (error.message?.includes('Authentication') || error.message?.includes('401')) {
+        console.error('Strategic AI function error:', error);
+        
+        // Enhanced error handling for different failure types
+        if (error.message?.includes('Token expired') || error.message?.includes('session has expired')) {
           toast({
-            title: "Authentication Error",
-            description: "Your session has expired. Please refresh the page and try again.",
+            title: "Session Expired",
+            description: "Your session has expired. Please refresh the page and log in again.",
             variant: "destructive",
           });
           return;
         }
+        
+        if (error.message?.includes('Authentication') || error.message?.includes('401') || error.message?.includes('Authorization')) {
+          toast({
+            title: "Authentication Error",
+            description: "Authentication failed. Please refresh the page and try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         throw error;
       }
 
@@ -159,10 +200,16 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
       console.error('Error getting AI analysis:', error);
       const errorMessage = error.message || 'An unexpected error occurred';
       
-      if (errorMessage.includes('OpenAI') || errorMessage.includes('API')) {
+      if (errorMessage.includes('OpenAI') || errorMessage.includes('API key')) {
         toast({
-          title: "AI Service Unavailable",
-          description: "The AI service is temporarily unavailable. Please try again later.",
+          title: "AI Service Issue",
+          description: "The AI service configuration needs attention. Please contact support.",
+          variant: "destructive",
+        });
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        toast({
+          title: "Connection Error",
+          description: "Please check your internet connection and try again.",
           variant: "destructive",
         });
       } else {
@@ -180,10 +227,11 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
   const loadBusinessContextFromAssistant = async () => {
     setIsLoadingContext(true);
     try {
-      // Ensure we have a valid session before making the call
+      // Enhanced session validation for context loading
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (sessionError || !session) {
+      if (sessionError) {
+        console.error('Session error during context load:', sessionError);
         setIsContextAutoLoaded(true); // Mark as attempted
         toast({
           title: "Authentication Error",
@@ -192,7 +240,19 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
         });
         return;
       }
+      
+      if (!session || !session.access_token) {
+        console.error('No valid session for context loading');
+        setIsContextAutoLoaded(true); // Mark as attempted
+        toast({
+          title: "Authentication Required",
+          description: "Please refresh the page to enable AI Assistant sync.",
+          variant: "destructive",
+        });
+        return;
+      }
 
+      console.log('Loading business context from AI Assistant with valid session');
       const { data, error } = await supabase.functions.invoke('ai-strategic-analysis', {
         body: {
           loadBusinessContext: true,
@@ -200,16 +260,29 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
       });
 
       if (error) {
-        // Handle specific error types
-        if (error.message?.includes('Authentication') || error.message?.includes('401')) {
+        console.error('Business context loading error:', error);
+        
+        // Enhanced error handling for context loading
+        if (error.message?.includes('Token expired') || error.message?.includes('session has expired')) {
           setIsContextAutoLoaded(true); // Mark as attempted
           toast({
-            title: "Authentication Error",
+            title: "Session Expired",
             description: "Your session has expired. Please refresh the page.",
             variant: "destructive",
           });
           return;
         }
+        
+        if (error.message?.includes('Authentication') || error.message?.includes('401') || error.message?.includes('Authorization')) {
+          setIsContextAutoLoaded(true); // Mark as attempted
+          toast({
+            title: "Authentication Error",
+            description: "Authentication failed. Please refresh the page.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         throw error;
       }
 
@@ -255,16 +328,22 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
       setIsContextAutoLoaded(true); // Mark as attempted
       const errorMessage = error.message || 'An unexpected error occurred';
       
-      if (errorMessage.includes('OpenAI') || errorMessage.includes('API')) {
+      if (errorMessage.includes('OpenAI') || errorMessage.includes('API key')) {
         toast({
-          title: "AI Service Unavailable",
-          description: "The AI Assistant service is temporarily unavailable.",
+          title: "AI Service Issue",
+          description: "The AI Assistant service configuration needs attention.",
+          variant: "destructive",
+        });
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        toast({
+          title: "Connection Error",
+          description: "Failed to connect to AI Assistant. Please check your connection.",
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Connection error",
-          description: "Failed to connect to AI Assistant. Please try again later.",
+          title: "Assistant Sync Error",
+          description: "Failed to sync with AI Assistant. Please try again later.",
           variant: "destructive",
         });
       }

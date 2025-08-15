@@ -21,7 +21,7 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    // Get and validate authorization header
+    // Parse and validate JWT token manually for better error handling
     const authorization = req.headers.get('Authorization');
     if (!authorization || !authorization.startsWith('Bearer ')) {
       console.error('Missing or invalid authorization header');
@@ -34,54 +34,98 @@ serve(async (req) => {
       });
     }
 
+    const token = authorization.replace('Bearer ', '');
+    console.log('Processing request with JWT token length:', token.length);
+
     const { question, context, conversationType = 'quick_insight', loadBusinessContext = false } = await req.json();
     
-    // Initialize Supabase client with robust configuration
+    // Initialize Supabase client with service role for better JWT handling
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    
+    // Create client with anon key first for JWT verification
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         headers: {
           Authorization: authorization,
         },
       },
       auth: {
-        persistSession: false, // Edge functions don't need session persistence
+        persistSession: false,
+        autoRefreshToken: false,
       },
     });
 
-    // Enhanced user authentication with detailed logging
-    console.log('Attempting user authentication...');
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Enhanced JWT validation and user authentication
+    console.log('Validating JWT token and extracting user...');
+    let user;
+    let userId;
     
-    if (userError) {
-      console.error('User authentication error:', userError);
+    try {
+      // First try with the provided JWT
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+      
+      if (authError) {
+        console.error('JWT validation error:', authError.message, 'Status:', authError.status);
+        
+        // Try to decode JWT to get user ID directly for debugging
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          console.log('JWT payload user ID:', payload.sub, 'Expires:', new Date(payload.exp * 1000));
+          
+          if (payload.exp * 1000 < Date.now()) {
+            return new Response(JSON.stringify({ 
+              error: 'Token expired',
+              details: 'Your session has expired. Please refresh the page and log in again.',
+              code: 401
+            }), {
+              status: 401,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        } catch (decodeError) {
+          console.error('JWT decode error:', decodeError);
+        }
+        
+        return new Response(JSON.stringify({ 
+          error: 'Authentication failed',
+          details: `Session validation failed: ${authError.message}. Please refresh the page and try again.`,
+          code: authError.status || 401
+        }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      if (!authUser) {
+        console.error('No user found in validated JWT');
+        return new Response(JSON.stringify({ 
+          error: 'Authentication failed',
+          details: 'No valid user found in session. Please refresh the page and log in again.',
+          code: 401
+        }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      user = authUser;
+      userId = user.id;
+      console.log('JWT validation successful for user:', userId);
+      
+    } catch (error) {
+      console.error('Unexpected authentication error:', error);
       return new Response(JSON.stringify({ 
-        error: 'Authentication failed',
-        details: `Auth error: ${userError.message}`,
-        code: userError.status || 401
+        error: 'Authentication system error',
+        details: 'Authentication service temporarily unavailable. Please try again.',
+        code: 500
       }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    if (!user) {
-      console.error('No user found in session');
-      return new Response(JSON.stringify({ 
-        error: 'Authentication failed',
-        details: 'No valid user session found. Please log in again.',
-        code: 401
-      }), {
-        status: 401,
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('User authenticated successfully:', user.id);
-
-    const userId = user.id;
-    
     console.log('Processing AI request:', { question, conversationType, loadBusinessContext, userId });
 
     // Handle business context loading from Assistant
