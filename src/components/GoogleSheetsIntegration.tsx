@@ -82,47 +82,58 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
         throw new Error('Google OAuth credentials are missing client_id or client_secret.');
       }
 
-      // Now try the actual auth URL request
-      const response = await fetch(
+      // Get auth URL from backend
+      const authResponse = await fetch(
         `https://ksyuwacuigshvcyptlhe.supabase.co/functions/v1/google-sheets-integration?action=auth_url`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({}),
+          }
         }
       );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Authentication failed');
+      if (!authResponse.ok) {
+        const errorData = await authResponse.json();
+        throw new Error(errorData.error || 'Failed to get auth URL');
       }
 
-      const data = await response.json();
-
-      if (data?.authUrl) {
-        // Open authentication window
-        const authWindow = window.open(
-          data.authUrl,
-          'google-auth',
-          'width=500,height=600,scrollbars=yes,resizable=yes'
-        );
-
-        // Listen for the auth code
-        const handleMessage = (event: MessageEvent) => {
-          if (event.origin !== window.location.origin) return;
-          
-          if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
-            handleAuthCode(event.data.code);
-            authWindow?.close();
-            window.removeEventListener('message', handleMessage);
-          }
-        };
-
-        window.addEventListener('message', handleMessage);
-      }
+      const { authUrl } = await authResponse.json();
+      
+      // Open the auth URL in a popup window
+      const popup = window.open(authUrl, 'google-oauth', 'width=600,height=600');
+      
+      // Listen for OAuth completion messages
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data.type === 'oauth_success') {
+          window.removeEventListener('message', handleMessage);
+          popup?.close();
+          toast({
+            title: 'Success',
+            description: event.data.message,
+          });
+          fetchIntegration(); // Refresh integration status
+        } else if (event.data.type === 'oauth_error') {
+          window.removeEventListener('message', handleMessage);
+          popup?.close();
+          toast({
+            title: 'Authentication Failed',
+            description: event.data.error || 'Authentication failed',
+            variant: 'destructive',
+          });
+        }
+      };
+      
+      window.addEventListener('message', handleMessage);
+      
+      // Clean up if popup is closed manually
+      const checkClosed = setInterval(() => {
+        if (popup?.closed) {
+          clearInterval(checkClosed);
+          window.removeEventListener('message', handleMessage);
+        }
+      }, 1000);
     } catch (error: any) {
       toast({
         title: 'Authentication Failed',
@@ -134,40 +145,6 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
     }
   };
 
-  const handleAuthCode = async (code: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(
-        `https://ksyuwacuigshvcyptlhe.supabase.co/functions/v1/google-sheets-integration?action=exchange_code`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({ code }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Code exchange failed');
-      }
-
-      toast({
-        title: 'Authentication Successful',
-        description: 'Google Sheets integration is now active.',
-      });
-
-      fetchIntegration();
-    } catch (error: any) {
-      toast({
-        title: 'Authentication Failed',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  };
 
   const handleCreateSheet = async () => {
     setLoading(true);

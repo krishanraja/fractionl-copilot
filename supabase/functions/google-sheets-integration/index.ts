@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Parse request URL first to check for test endpoints BEFORE authentication
+    // Parse request URL first to check for actions that don't need authentication
     const url = new URL(req.url);
     const action = url.searchParams.get('action');
     
@@ -61,6 +61,11 @@ Deno.serve(async (req) => {
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Handle exchange_code action without authentication (Google OAuth callback)
+    if (action === 'exchange_code') {
+      return await handleExchangeCodeNoAuth(req);
     }
 
     // For all other actions, require authentication
@@ -137,10 +142,7 @@ Deno.serve(async (req) => {
     
     switch (action) {
       case 'auth_url':
-        return handleAuthUrl(credentials);
-      
-      case 'exchange_code':
-        return await handleExchangeCode(body.code, credentials, supabase, user.id);
+        return handleAuthUrl(credentials, user.id);
       
       case 'create_sheet':
         return await handleCreateSheet(body, supabase, user.id);
@@ -166,7 +168,7 @@ Deno.serve(async (req) => {
   }
 });
 
-function handleAuthUrl(credentials: GoogleCredentials) {
+function handleAuthUrl(credentials: GoogleCredentials, userId: string) {
   console.log('Credentials structure:', JSON.stringify(credentials, null, 2));
   
   // Validate credentials structure
@@ -186,6 +188,9 @@ function handleAuthUrl(credentials: GoogleCredentials) {
     throw new Error('Invalid Google OAuth credentials: missing or empty "redirect_uris" array. Please add a redirect URI in your Google Cloud Console OAuth configuration.');
   }
   
+  // Create state parameter to securely link callback to user
+  const state = btoa(JSON.stringify({ userId, timestamp: Date.now() }));
+  
   const authUrl = new URL(credentials.web.auth_uri);
   authUrl.searchParams.set('client_id', credentials.web.client_id);
   authUrl.searchParams.set('redirect_uri', credentials.web.redirect_uris[0]);
@@ -193,6 +198,7 @@ function handleAuthUrl(credentials: GoogleCredentials) {
   authUrl.searchParams.set('response_type', 'code');
   authUrl.searchParams.set('access_type', 'offline');
   authUrl.searchParams.set('prompt', 'consent');
+  authUrl.searchParams.set('state', state);
 
   console.log('Generated auth URL:', authUrl.toString());
 
@@ -373,6 +379,140 @@ async function handleExportData(body: any, supabase: any, userId: string) {
     JSON.stringify({ success: true, updatedCells: result.updatedCells }),
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
   );
+}
+
+async function handleExchangeCodeNoAuth(req: Request) {
+  // Initialize Supabase client for database operations
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  // Parse request URL and body
+  const url = new URL(req.url);
+  const code = url.searchParams.get('code');
+  const state = url.searchParams.get('state');
+  const error = url.searchParams.get('error');
+
+  console.log('OAuth callback received:', { hasCode: !!code, hasState: !!state, error });
+
+  // Handle OAuth errors
+  if (error) {
+    console.error('OAuth error:', error);
+    return new Response(
+      `<html><body><script>
+        window.opener.postMessage({ 
+          type: 'oauth_error', 
+          error: '${error}' 
+        }, '*');
+        window.close();
+      </script></body></html>`,
+      { headers: { ...corsHeaders, 'Content-Type': 'text/html' } }
+    );
+  }
+
+  if (!code) {
+    return new Response(
+      `<html><body><script>
+        window.opener.postMessage({ 
+          type: 'oauth_error', 
+          error: 'No authorization code received' 
+        }, '*');
+        window.close();
+      </script></body></html>`,
+      { headers: { ...corsHeaders, 'Content-Type': 'text/html' } }
+    );
+  }
+
+  if (!state) {
+    return new Response(
+      `<html><body><script>
+        window.opener.postMessage({ 
+          type: 'oauth_error', 
+          error: 'Missing state parameter' 
+        }, '*');
+        window.close();
+      </script></body></html>`,
+      { headers: { ...corsHeaders, 'Content-Type': 'text/html' } }
+    );
+  }
+
+  try {
+    // Decode state to get user ID
+    const { userId } = JSON.parse(atob(state));
+    console.log('Decoded state - userId:', userId);
+
+    // Get Google credentials
+    const rawCredentials = Deno.env.get('GOOGLE_OAUTH_CREDENTIALS');
+    if (!rawCredentials) {
+      throw new Error('Google OAuth credentials not configured');
+    }
+    
+    const credentials: GoogleCredentials = JSON.parse(rawCredentials);
+
+    // Exchange code for tokens
+    const tokenResponse = await fetch(credentials.web.token_uri, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: credentials.web.client_id,
+        client_secret: credentials.web.client_secret,
+        redirect_uri: credentials.web.redirect_uris[0],
+        grant_type: 'authorization_code',
+      }),
+    });
+
+    const tokens = await tokenResponse.json();
+    
+    if (tokens.error) {
+      throw new Error(`Token exchange failed: ${tokens.error}`);
+    }
+
+    // Store tokens in database
+    const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
+    
+    const { error: dbError } = await supabase
+      .from('sheets_integrations')
+      .upsert({
+        user_id: userId,
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        token_expires_at: expiresAt.toISOString(),
+        sync_status: 'success'
+      });
+
+    if (dbError) {
+      throw new Error(`Database error: ${dbError.message}`);
+    }
+
+    console.log('OAuth integration completed successfully for user:', userId);
+
+    // Return success HTML that notifies the parent window and closes the popup
+    return new Response(
+      `<html><body><script>
+        window.opener.postMessage({ 
+          type: 'oauth_success', 
+          message: 'Google Sheets integration completed successfully!' 
+        }, '*');
+        window.close();
+      </script></body></html>`,
+      { headers: { ...corsHeaders, 'Content-Type': 'text/html' } }
+    );
+
+  } catch (error) {
+    console.error('OAuth callback error:', error);
+    return new Response(
+      `<html><body><script>
+        window.opener.postMessage({ 
+          type: 'oauth_error', 
+          error: '${error.message}' 
+        }, '*');
+        window.close();
+      </script></body></html>`,
+      { headers: { ...corsHeaders, 'Content-Type': 'text/html' } }
+    );
+  }
 }
 
 async function handleImportData(body: any, supabase: any, userId: string) {
