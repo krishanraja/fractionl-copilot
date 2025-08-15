@@ -109,6 +109,18 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
 
     setIsLoading(true);
     try {
+      // Ensure we have a valid session before making the call
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        toast({
+          title: "Authentication Error",
+          description: "Please refresh the page and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('ai-strategic-analysis', {
         body: {
           question: currentQuestion,
@@ -122,7 +134,18 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific error types
+        if (error.message?.includes('Authentication') || error.message?.includes('401')) {
+          toast({
+            title: "Authentication Error",
+            description: "Your session has expired. Please refresh the page and try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
 
       // Refresh conversations to show the new one
       loadConversations();
@@ -134,11 +157,21 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
       });
     } catch (error) {
       console.error('Error getting AI analysis:', error);
-      toast({
-        title: "Error getting AI analysis",
-        description: "Please try again in a moment.",
-        variant: "destructive",
-      });
+      const errorMessage = error.message || 'An unexpected error occurred';
+      
+      if (errorMessage.includes('OpenAI') || errorMessage.includes('API')) {
+        toast({
+          title: "AI Service Unavailable",
+          description: "The AI service is temporarily unavailable. Please try again later.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error getting AI analysis",
+          description: "Please try again in a moment.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -147,13 +180,38 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
   const loadBusinessContextFromAssistant = async () => {
     setIsLoadingContext(true);
     try {
+      // Ensure we have a valid session before making the call
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        setIsContextAutoLoaded(true); // Mark as attempted
+        toast({
+          title: "Authentication Error",
+          description: "Please refresh the page to sync with AI Assistant.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('ai-strategic-analysis', {
         body: {
           loadBusinessContext: true,
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific error types
+        if (error.message?.includes('Authentication') || error.message?.includes('401')) {
+          setIsContextAutoLoaded(true); // Mark as attempted
+          toast({
+            title: "Authentication Error",
+            description: "Your session has expired. Please refresh the page.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
 
       if (data.businessContext) {
         // The edge function now returns a properly parsed object
@@ -195,11 +253,21 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
     } catch (error) {
       console.error('Error loading business context from assistant:', error);
       setIsContextAutoLoaded(true); // Mark as attempted
-      toast({
-        title: "Connection error",
-        description: "Failed to connect to AI Assistant. Please try again later.",
-        variant: "destructive",
-      });
+      const errorMessage = error.message || 'An unexpected error occurred';
+      
+      if (errorMessage.includes('OpenAI') || errorMessage.includes('API')) {
+        toast({
+          title: "AI Service Unavailable",
+          description: "The AI Assistant service is temporarily unavailable.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Connection error",
+          description: "Failed to connect to AI Assistant. Please try again later.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoadingContext(false);
     }

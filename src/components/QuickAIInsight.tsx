@@ -28,6 +28,18 @@ export const QuickAIInsight = ({ currentMetrics }: QuickAIInsightProps) => {
 
     setIsLoading(true);
     try {
+      // Ensure we have a valid session before making the call
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        toast({
+          title: "Authentication Error",
+          description: "Please refresh the page and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('ai-strategic-analysis', {
         body: {
           question,
@@ -39,17 +51,38 @@ export const QuickAIInsight = ({ currentMetrics }: QuickAIInsightProps) => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific error types
+        if (error.message?.includes('Authentication') || error.message?.includes('401')) {
+          toast({
+            title: "Authentication Error",
+            description: "Your session has expired. Please refresh the page and try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
 
       setResponse(data.response);
       setQuestion(''); // Clear the input after successful response
     } catch (error) {
       console.error('Error getting AI insight:', error);
-      toast({
-        title: "Error getting AI insight",
-        description: "Please try again in a moment.",
-        variant: "destructive",
-      });
+      const errorMessage = error.message || 'An unexpected error occurred';
+      
+      if (errorMessage.includes('OpenAI') || errorMessage.includes('API')) {
+        toast({
+          title: "AI Service Unavailable",
+          description: "The AI service is temporarily unavailable. Please try again later.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error getting AI insight",
+          description: "Please try again in a moment.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }

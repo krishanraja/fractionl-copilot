@@ -21,10 +21,14 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    // Get the authorization header
+    // Get and validate authorization header
     const authorization = req.headers.get('Authorization');
-    if (!authorization) {
-      return new Response(JSON.stringify({ error: 'Authorization required' }), {
+    if (!authorization || !authorization.startsWith('Bearer ')) {
+      console.error('Missing or invalid authorization header');
+      return new Response(JSON.stringify({ 
+        error: 'Authorization required',
+        details: 'Please ensure you are logged in' 
+      }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -32,7 +36,7 @@ serve(async (req) => {
 
     const { question, context, conversationType = 'quick_insight', loadBusinessContext = false } = await req.json();
     
-    // Initialize Supabase client with the user's token
+    // Initialize Supabase client with robust configuration
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey, {
@@ -41,16 +45,40 @@ serve(async (req) => {
           Authorization: authorization,
         },
       },
+      auth: {
+        persistSession: false, // Edge functions don't need session persistence
+      },
     });
 
-    // Get the authenticated user
+    // Enhanced user authentication with detailed logging
+    console.log('Attempting user authentication...');
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: 'Authentication failed' }), {
+    
+    if (userError) {
+      console.error('User authentication error:', userError);
+      return new Response(JSON.stringify({ 
+        error: 'Authentication failed',
+        details: `Auth error: ${userError.message}`,
+        code: userError.status || 401
+      }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    
+    if (!user) {
+      console.error('No user found in session');
+      return new Response(JSON.stringify({ 
+        error: 'Authentication failed',
+        details: 'No valid user session found. Please log in again.',
+        code: 401
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('User authenticated successfully:', user.id);
 
     const userId = user.id;
     
