@@ -22,6 +22,43 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Parse request first to check for test endpoints
+    const url = new URL(req.url);
+    const action = url.searchParams.get('action');
+    
+    // Add test endpoint for secret verification (no auth needed) - FORCE DEPLOYMENT v2.1
+    if (action === 'test_secret') {
+      const rawCredentials = Deno.env.get('GOOGLE_OAUTH_CREDENTIALS');
+      const hasSecret = !!rawCredentials;
+      const secretLength = rawCredentials?.length || 0;
+      
+      let isValidJson = false;
+      let parseError = null;
+      if (hasSecret) {
+        try { 
+          const parsed = JSON.parse(rawCredentials!); 
+          isValidJson = true;
+          console.log('Test endpoint - secret parsed successfully, has web:', !!parsed.web);
+        } catch (e) { 
+          parseError = e.message;
+          console.log('Test endpoint - JSON parse failed:', e.message);
+        }
+      }
+      
+      return new Response(
+        JSON.stringify({ 
+          hasSecret, 
+          secretLength, 
+          isValidJson,
+          parseError,
+          timestamp: new Date().toISOString(),
+          deploymentVersion: '2.1-fresh' // Force fresh deployment marker
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Initialize Supabase client for authenticated requests
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -39,8 +76,7 @@ Deno.serve(async (req) => {
       throw new Error('Invalid token');
     }
 
-    const url = new URL(req.url);
-    const action = url.searchParams.get('action');
+    console.log('Authenticated user:', user.id, 'Action:', action);
     
     if (!action) {
       throw new Error('Missing action parameter');
@@ -56,20 +92,34 @@ Deno.serve(async (req) => {
       console.log('Request body parsing failed, using empty object:', parseError);
     }
 
-    // Parse Google OAuth credentials
+    // Parse Google OAuth credentials with enhanced error reporting
     const rawCredentials = Deno.env.get('GOOGLE_OAUTH_CREDENTIALS');
+    console.log('Deployment v2.1 - Secret check:', {
+      exists: !!rawCredentials, 
+      length: rawCredentials?.length || 0,
+      first10chars: rawCredentials?.substring(0, 10) || 'none'
+    });
+    
     if (!rawCredentials?.trim()) {
-      throw new Error('GOOGLE_OAUTH_CREDENTIALS environment variable is not set or empty');
+      const errorMsg = `GOOGLE_OAUTH_CREDENTIALS environment variable is ${!rawCredentials ? 'not set' : 'empty'}`;
+      console.error('Secret error:', errorMsg);
+      throw new Error(errorMsg);
     }
     
     let credentials: GoogleCredentials;
     try {
       credentials = JSON.parse(rawCredentials);
+      console.log('Credentials parsed successfully - Structure check:', {
+        hasWeb: !!credentials.web,
+        hasClientId: !!credentials.web?.client_id,
+        hasClientSecret: !!credentials.web?.client_secret
+      });
+      
       if (!credentials.web || !credentials.web.client_id || !credentials.web.client_secret) {
         throw new Error('Invalid credentials format: missing required web credentials');
       }
     } catch (parseError) {
-      console.error('Failed to parse GOOGLE_OAUTH_CREDENTIALS:', parseError);
+      console.error('JSON parse failed for credentials:', parseError.message);
       throw new Error(`Invalid GOOGLE_OAUTH_CREDENTIALS format: ${parseError.message}`);
     }
     
