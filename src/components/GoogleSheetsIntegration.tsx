@@ -50,7 +50,7 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
   const handleAuthenticate = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('google-sheets-integration', {
+      const { data, error } = await supabase.functions.invoke('google-sheets-integration?action=auth_url', {
         body: {},
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +93,7 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
 
   const handleAuthCode = async (code: string) => {
     try {
-      const { error } = await supabase.functions.invoke('google-sheets-integration', {
+      const { error } = await supabase.functions.invoke('google-sheets-integration?action=exchange_code', {
         body: { code },
         headers: {
           'Content-Type': 'application/json',
@@ -120,7 +120,7 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
   const handleCreateSheet = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('google-sheets-integration', {
+      const { data, error } = await supabase.functions.invoke('google-sheets-integration?action=create_sheet', {
         body: { 
           title: `Business Tracker - ${new Date().getFullYear()}`,
         },
@@ -151,7 +151,7 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
   const handleExportData = async (dataType: string) => {
     setExporting(true);
     try {
-      const { error } = await supabase.functions.invoke('google-sheets-integration', {
+      const { error } = await supabase.functions.invoke('google-sheets-integration?action=export_data', {
         body: { 
           dataType,
           month: selectedMonth,

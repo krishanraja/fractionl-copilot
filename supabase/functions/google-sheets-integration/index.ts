@@ -41,7 +41,20 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const action = url.searchParams.get('action');
-    const { body } = await req.json();
+    
+    if (!action) {
+      throw new Error('Missing action parameter');
+    }
+
+    let body = {};
+    try {
+      const requestText = await req.text();
+      if (requestText) {
+        body = JSON.parse(requestText);
+      }
+    } catch (parseError) {
+      console.log('Request body parsing failed, using empty object:', parseError);
+    }
 
     const credentials: GoogleCredentials = JSON.parse(Deno.env.get('GOOGLE_OAUTH_CREDENTIALS') || '{}');
     
