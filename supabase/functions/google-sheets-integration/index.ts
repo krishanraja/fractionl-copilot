@@ -698,69 +698,80 @@ async function populateAllSheets(accessToken: string, spreadsheetId: string, sup
     supabase.from('revenue_entries').select('*').eq('user_id', userId)
   ]);
 
-  // Prepare batch update requests
+  // Prepare batch update requests - ALWAYS create structured sheets with headers and default values
   const requests = [];
+  const currentDate = new Date();
+  const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+  const todayFormatted = currentDate.toISOString().split('T')[0];
 
-  // Monthly Goals Sheet
-  if (monthlyGoals.data && monthlyGoals.data.length > 0) {
-    const goalsValues = [
-      ['Month', 'Revenue Forecast', 'Cost Budget', 'Workshops Target', 'Advisory Target', 'Lectures Target', 'PR Target', 'Created Date'],
-      ...monthlyGoals.data.map((g: any) => [
-        g.month, g.revenue_forecast || 0, g.cost_budget || 0,
-        g.workshops_target || 0, g.advisory_target || 0, g.lectures_target || 0, g.pr_target || 0,
-        new Date(g.created_at).toLocaleDateString()
-      ])
-    ];
-    requests.push({
-      range: 'Monthly Goals!A1',
-      values: goalsValues
-    });
-  }
+  // Monthly Goals Sheet - ALWAYS create with headers + template row
+  const goalsData = monthlyGoals.data && monthlyGoals.data.length > 0 
+    ? monthlyGoals.data 
+    : [{ month: currentMonth, revenue_forecast: 0, cost_budget: 0, workshops_target: 0, advisory_target: 0, lectures_target: 0, pr_target: 0, created_at: new Date().toISOString() }];
+  
+  const goalsValues = [
+    ['Month', 'Revenue Forecast', 'Cost Budget', 'Workshops Target', 'Advisory Target', 'Lectures Target', 'PR Target', 'Created Date'],
+    ...goalsData.map((g: any) => [
+      g.month, g.revenue_forecast || 0, g.cost_budget || 0,
+      g.workshops_target || 0, g.advisory_target || 0, g.lectures_target || 0, g.pr_target || 0,
+      new Date(g.created_at).toLocaleDateString()
+    ])
+  ];
+  requests.push({
+    range: 'Monthly Goals!A1',
+    values: goalsValues
+  });
 
-  // Daily Progress Sheet
-  if (dailyProgress.data && dailyProgress.data.length > 0) {
-    const progressValues = [
-      ['Date', 'Month', 'Workshops Progress', 'Advisory Progress', 'Lectures Progress', 'PR Progress', 'Notes'],
-      ...dailyProgress.data.map((p: any) => [
-        p.date, p.month, p.workshops_progress || 0, p.advisory_progress || 0,
-        p.lectures_progress || 0, p.pr_progress || 0, p.notes || ''
-      ])
-    ];
-    requests.push({
-      range: 'Daily Progress!A1',
-      values: progressValues
-    });
-  }
+  // Daily Progress Sheet - ALWAYS create with headers + template row
+  const progressData = dailyProgress.data && dailyProgress.data.length > 0 
+    ? dailyProgress.data 
+    : [{ date: todayFormatted, month: currentMonth, workshops_progress: 0, advisory_progress: 0, lectures_progress: 0, pr_progress: 0, notes: 'Template entry - update with your progress' }];
+  
+  const progressValues = [
+    ['Date', 'Month', 'Workshops Progress', 'Advisory Progress', 'Lectures Progress', 'PR Progress', 'Notes'],
+    ...progressData.map((p: any) => [
+      p.date, p.month, p.workshops_progress || 0, p.advisory_progress || 0,
+      p.lectures_progress || 0, p.pr_progress || 0, p.notes || ''
+    ])
+  ];
+  requests.push({
+    range: 'Daily Progress!A1',
+    values: progressValues
+  });
 
-  // Opportunities Pipeline Sheet
-  if (opportunities.data && opportunities.data.length > 0) {
-    const opportunitiesValues = [
-      ['Title', 'Type', 'Company', 'Contact Person', 'Stage', 'Probability %', 'Estimated Value', 'Close Date', 'Month', 'Notes'],
-      ...opportunities.data.map((o: any) => [
-        o.title, o.type, o.company || '', o.contact_person || '', o.stage,
-        o.probability || 0, o.estimated_value || 0, o.estimated_close_date || '',
-        o.month, o.notes || ''
-      ])
-    ];
-    requests.push({
-      range: 'Opportunities Pipeline!A1',
-      values: opportunitiesValues
-    });
-  }
+  // Opportunities Pipeline Sheet - ALWAYS create with headers + template row
+  const opportunitiesData = opportunities.data && opportunities.data.length > 0 
+    ? opportunities.data 
+    : [{ title: 'Sample Opportunity', type: 'workshop', company: 'Company Name', contact_person: 'Contact Name', stage: 'lead', probability: 25, estimated_value: 5000, estimated_close_date: '', month: currentMonth, notes: 'Template entry - replace with your opportunities' }];
+  
+  const opportunitiesValues = [
+    ['Title', 'Type', 'Company', 'Contact Person', 'Stage', 'Probability %', 'Estimated Value', 'Close Date', 'Month', 'Notes'],
+    ...opportunitiesData.map((o: any) => [
+      o.title, o.type, o.company || '', o.contact_person || '', o.stage,
+      o.probability || 0, o.estimated_value || 0, o.estimated_close_date || '',
+      o.month, o.notes || ''
+    ])
+  ];
+  requests.push({
+    range: 'Opportunities Pipeline!A1',
+    values: opportunitiesValues
+  });
 
-  // Revenue Tracking Sheet
-  if (revenueEntries.data && revenueEntries.data.length > 0) {
-    const revenueValues = [
-      ['Date', 'Month', 'Amount', 'Source', 'Description'],
-      ...revenueEntries.data.map((r: any) => [
-        r.date, r.month, r.amount || 0, r.source, r.description || ''
-      ])
-    ];
-    requests.push({
-      range: 'Revenue Tracking!A1',
-      values: revenueValues
-    });
-  }
+  // Revenue Tracking Sheet - ALWAYS create with headers + template row
+  const revenueData = revenueEntries.data && revenueEntries.data.length > 0 
+    ? revenueEntries.data 
+    : [{ date: todayFormatted, month: currentMonth, amount: 0, source: 'workshop', description: 'Template entry - replace with your revenue entries' }];
+  
+  const revenueValues = [
+    ['Date', 'Month', 'Amount', 'Source', 'Description'],
+    ...revenueData.map((r: any) => [
+      r.date, r.month, r.amount || 0, r.source, r.description || ''
+    ])
+  ];
+  requests.push({
+    range: 'Revenue Tracking!A1',
+    values: revenueValues
+  });
 
   // Summary Dashboard (create basic structure)
   const dashboardValues = [
