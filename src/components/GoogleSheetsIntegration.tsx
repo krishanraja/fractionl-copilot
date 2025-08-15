@@ -51,10 +51,10 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      // First test the secret endpoint to verify deployment and credentials
-      console.log('Testing secret endpoint first...');
+      // Test the dedicated secret test endpoint (no auth required)
+      console.log('Testing Google OAuth secret...');
       const testResponse = await fetch(
-        `https://ksyuwacuigshvcyptlhe.supabase.co/functions/v1/google-sheets-integration?action=test_secret`,
+        `https://ksyuwacuigshvcyptlhe.supabase.co/functions/v1/test-google-secret`,
         {
           method: 'GET',
           headers: {
@@ -67,11 +67,19 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
       console.log('Secret test result:', testData);
       
       if (!testData.hasSecret) {
-        throw new Error('Google OAuth credentials are not configured in Supabase');
+        throw new Error('Google OAuth credentials are not configured in Supabase. Please add them in the Edge Functions secrets.');
       }
       
       if (!testData.isValidJson) {
         throw new Error(`Google OAuth credentials are invalid JSON: ${testData.parseError}`);
+      }
+      
+      if (!testData.credentialStructure?.hasWeb) {
+        throw new Error('Google OAuth credentials are missing the "web" configuration object.');
+      }
+      
+      if (!testData.credentialStructure?.hasClientId || !testData.credentialStructure?.hasClientSecret) {
+        throw new Error('Google OAuth credentials are missing client_id or client_secret.');
       }
 
       // Now try the actual auth URL request

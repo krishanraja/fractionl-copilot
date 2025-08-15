@@ -22,4 +22,7 @@ verify_jwt = true
 
 [functions.google-sheets-integration]
 verify_jwt = true
+
+[functions.test-google-secret]
+verify_jwt = false
 # Force redeployment with config change
