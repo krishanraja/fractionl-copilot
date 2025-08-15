@@ -111,6 +111,14 @@ Deno.serve(async (req) => {
     // Parse request URL first to check for actions that don't need authentication
     const url = new URL(req.url);
     const action = url.searchParams.get('action');
+    const code = url.searchParams.get('code');
+    const state = url.searchParams.get('state');
+    
+    // Handle Google OAuth callback - detect by presence of code and state parameters
+    if (code && state) {
+      console.log('Detected Google OAuth callback with code and state parameters');
+      return await handleExchangeCodeNoAuth(req);
+    }
     
     // Add test endpoint for secret verification (no auth needed) - FORCE DEPLOYMENT v3.1
     if (action === 'test_secret') {
