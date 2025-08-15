@@ -23,6 +23,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { ChatInterface } from './ChatInterface';
 
 interface AIStrategyHubProps {
   currentMetrics: any;
@@ -416,58 +417,11 @@ export const AIStrategyHub = ({ currentMetrics, monthlyGoals }: AIStrategyHubPro
         </TabsList>
 
         <TabsContent value="chat" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Brain className="h-5 w-5" />
-                Strategic Analysis
-              </CardTitle>
-              <CardDescription>
-                Ask detailed questions about your business strategy, performance, and goals.
-                The AI will provide comprehensive analysis based on your current metrics.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Textarea
-                  placeholder="Ask a strategic question about your business..."
-                  value={currentQuestion}
-                  onChange={(e) => setCurrentQuestion(e.target.value)}
-                  className="min-h-[100px]"
-                />
-                <Button 
-                  onClick={askStrategicQuestion}
-                  disabled={isLoading || !currentQuestion.trim()}
-                  className="w-full"
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Send className="h-4 w-4 mr-2" />
-                  )}
-                  Get Strategic Analysis
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-muted-foreground">Suggested Questions:</h4>
-                <div className="flex flex-wrap gap-2">
-                  {suggestedQuestions.map((question, index) => (
-                    <Button
-                      key={index}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentQuestion(question)}
-                      className="text-xs"
-                    >
-                      <Lightbulb className="h-3 w-3 mr-1" />
-                      {question.substring(0, 40)}...
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <ChatInterface 
+            currentMetrics={currentMetrics}
+            monthlyGoals={monthlyGoals}
+            businessContext={businessContext}
+          />
         </TabsContent>
 
         <TabsContent value="context" className="space-y-4">

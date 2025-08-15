@@ -457,6 +457,133 @@ serve(async (req) => {
       console.log('Assistant API failed, falling back to chat completions');
     }
 
+    // Handle chat messages with conversational context
+    if (conversationType === 'chat' && question) {
+      console.log('Processing chat message:', question);
+      
+      try {
+        const fullContext = `
+          Business Context:
+          - Type: ${context?.businessContext?.business_type || 'Not specified'}
+          - Target Market: ${context?.businessContext?.target_market || 'Not specified'}
+          - Challenges: ${context?.businessContext?.main_challenges?.join(', ') || 'None specified'}
+          - Priorities: ${context?.businessContext?.priorities?.join(', ') || 'None specified'}
+          
+          Current Metrics: ${JSON.stringify(context?.currentMetrics || {})}
+          Monthly Goals: ${JSON.stringify(context?.monthlyGoals || {})}
+          
+          Recent Conversation: ${context?.conversationHistory?.map(msg => `${msg.role}: ${msg.content}`).join('\n') || 'No recent context'}
+          
+          Current User Message: ${question}
+        `;
+
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: `You are an AI business strategist and advisor. Provide helpful, actionable advice based on the user's business context and metrics. Keep responses conversational but informative. Focus on practical insights that can help improve their business performance.`
+              },
+              {
+                role: 'user',
+                content: fullContext
+              }
+            ],
+            max_tokens: 800,
+            temperature: 0.7,
+          }),
+        });
+
+        if (!response.ok) {
+          console.error('OpenAI API error:', response.status, response.statusText);
+          const errorText = await response.text();
+          console.error('OpenAI error details:', errorText);
+          throw new Error(`OpenAI API call failed: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const aiResponse = data.choices[0].message.content;
+
+        return new Response(JSON.stringify({ 
+          response: aiResponse,
+          success: true
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+
+      } catch (error) {
+        console.error('Error in chat processing:', error);
+        return new Response(JSON.stringify({ 
+          error: error.message,
+          response: "I apologize, but I'm having trouble processing your message right now. Please try again in a moment."
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // Handle summary generation
+    if (conversationType === 'summary') {
+      console.log('Generating conversation summary');
+      
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openAIApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a business analyst. Create a concise 2-3 sentence summary of the key strategic insights and recommendations from the conversation.'
+              },
+              {
+                role: 'user',
+                content: question
+              }
+            ],
+            max_tokens: 200,
+            temperature: 0.3,
+          }),
+        });
+
+        if (!response.ok) {
+          console.error('OpenAI API error:', response.status, response.statusText);
+          throw new Error(`OpenAI API call failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const summary = data.choices[0].message.content;
+
+        return new Response(JSON.stringify({ 
+          response: summary,
+          success: true
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+
+      } catch (error) {
+        console.error('Error generating summary:', error);
+        return new Response(JSON.stringify({ 
+          error: error.message,
+          response: "Unable to generate summary at this time."
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     // Fallback to regular chat completions
     if (conversationType === 'quick_insight') {
       systemPrompt = `You are a strategic business advisor providing quick, actionable insights. 
