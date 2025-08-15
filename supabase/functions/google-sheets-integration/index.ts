@@ -1,4 +1,4 @@
-// FORCE DEPLOYMENT v3.0 - New deployment to pick up GOOGLE_OAUTH_CREDENTIALS secret
+// FORCE DEPLOYMENT v4.0 - Added token encryption for security
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -7,7 +7,7 @@ const corsHeaders = {
 }
 
 // Deployment marker for debugging
-const DEPLOYMENT_VERSION = '3.2-AUTH-FIX'
+const DEPLOYMENT_VERSION = '4.0-TOKEN-ENCRYPTION'
 
 interface GoogleCredentials {
   web: {
@@ -16,6 +16,88 @@ interface GoogleCredentials {
     auth_uri: string;
     token_uri: string;
     redirect_uris: string[];
+  }
+}
+
+// Token encryption utilities for security
+async function encryptToken(token: string): Promise<string> {
+  const encryptionKey = Deno.env.get('TOKEN_ENCRYPTION_KEY');
+  if (!encryptionKey) {
+    throw new Error('TOKEN_ENCRYPTION_KEY not configured');
+  }
+  
+  // Import Web Crypto API for encryption
+  const encoder = new TextEncoder();
+  const data = encoder.encode(token);
+  const keyData = encoder.encode(encryptionKey.padEnd(32, '0').slice(0, 32)); // Ensure 32 bytes
+  
+  // Import key for AES-GCM encryption
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'AES-GCM' },
+    false,
+    ['encrypt']
+  );
+  
+  // Generate random IV
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  
+  // Encrypt the token
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    data
+  );
+  
+  // Combine IV and encrypted data, then base64 encode
+  const combined = new Uint8Array(iv.length + encrypted.byteLength);
+  combined.set(iv);
+  combined.set(new Uint8Array(encrypted), iv.length);
+  
+  return btoa(String.fromCharCode(...combined));
+}
+
+async function decryptToken(encryptedToken: string): Promise<string> {
+  const encryptionKey = Deno.env.get('TOKEN_ENCRYPTION_KEY');
+  if (!encryptionKey) {
+    throw new Error('TOKEN_ENCRYPTION_KEY not configured');
+  }
+  
+  try {
+    // Decode base64
+    const combined = new Uint8Array(
+      atob(encryptedToken).split('').map(char => char.charCodeAt(0))
+    );
+    
+    // Extract IV and encrypted data
+    const iv = combined.slice(0, 12);
+    const encrypted = combined.slice(12);
+    
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(encryptionKey.padEnd(32, '0').slice(0, 32)); // Ensure 32 bytes
+    
+    // Import key for AES-GCM decryption
+    const key = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'AES-GCM' },
+      false,
+      ['decrypt']
+    );
+    
+    // Decrypt the token
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      encrypted
+    );
+    
+    const decoder = new TextDecoder();
+    return decoder.decode(decrypted);
+  } catch (error) {
+    console.error('Token decryption failed:', error);
+    throw new Error('Failed to decrypt token - may be corrupted or using wrong key');
   }
 }
 
@@ -114,7 +196,8 @@ Deno.serve(async (req) => {
     console.log(`Deployment ${DEPLOYMENT_VERSION} - Secret check:`, {
       exists: !!rawCredentials, 
       length: rawCredentials?.length || 0,
-      first10chars: rawCredentials?.substring(0, 10) || 'none'
+      first10chars: rawCredentials?.substring(0, 10) || 'none',
+      hasEncryptionKey: !!Deno.env.get('TOKEN_ENCRYPTION_KEY')
     });
     
     if (!rawCredentials?.trim()) {
@@ -257,9 +340,12 @@ async function handleCreateSheet(body: any, supabase: any, userId: string) {
     .eq('user_id', userId)
     .single();
 
-  if (!integration) {
+  if (!integration || !integration.access_token) {
     throw new Error('No Google Sheets integration found');
   }
+
+  // Decrypt the access token for API calls
+  const decryptedAccessToken = await decryptToken(integration.access_token);
 
   const sheetData = {
     properties: {
@@ -276,7 +362,7 @@ async function handleCreateSheet(body: any, supabase: any, userId: string) {
   const response = await fetch('https://sheets.googleapis.com/v4/spreadsheets', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${integration.access_token}`,
+      'Authorization': `Bearer ${decryptedAccessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(sheetData),
@@ -312,9 +398,12 @@ async function handleExportData(body: any, supabase: any, userId: string) {
     .eq('user_id', userId)
     .single();
 
-  if (!integration) {
+  if (!integration || !integration.access_token) {
     throw new Error('No Google Sheets integration found');
   }
+
+  // Decrypt the access token for API calls
+  const decryptedAccessToken = await decryptToken(integration.access_token);
 
   let data, range, values;
 
@@ -362,7 +451,7 @@ async function handleExportData(body: any, supabase: any, userId: string) {
     {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${integration.access_token}`,
+        'Authorization': `Bearer ${decryptedAccessToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ values }),
@@ -469,15 +558,21 @@ async function handleExchangeCodeNoAuth(req: Request) {
       throw new Error(`Token exchange failed: ${tokens.error}`);
     }
 
-    // Store tokens in database
+    // Store tokens in database with encryption
     const expiresAt = new Date(Date.now() + (tokens.expires_in * 1000));
+    
+    // Encrypt sensitive tokens before storage
+    const encryptedAccessToken = await encryptToken(tokens.access_token);
+    const encryptedRefreshToken = tokens.refresh_token ? await encryptToken(tokens.refresh_token) : null;
+    
+    console.log('Storing encrypted tokens for user:', userId);
     
     const { error: dbError } = await supabase
       .from('sheets_integrations')
       .upsert({
         user_id: userId,
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
+        access_token: encryptedAccessToken,
+        refresh_token: encryptedRefreshToken,
         token_expires_at: expiresAt.toISOString(),
         sync_status: 'success'
       });
