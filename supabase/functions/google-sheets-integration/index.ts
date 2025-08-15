@@ -596,9 +596,13 @@ async function handleExchangeCodeNoAuth(req: Request) {
     console.log('OAuth integration completed, now auto-creating spreadsheet for user:', userId);
     
     // Automatically create and populate the spreadsheet
+    let spreadsheetCreated = false;
+    let spreadsheetId = null;
     try {
-      await autoCreateAndPopulateSheet(tokens.access_token, supabase, userId);
-      console.log('Auto-creation and population completed successfully');
+      const result = await autoCreateAndPopulateSheet(tokens.access_token, supabase, userId);
+      console.log('Auto-creation and population completed successfully:', result);
+      spreadsheetCreated = true;
+      spreadsheetId = result.spreadsheetId;
     } catch (createError) {
       console.error('Auto-creation failed:', createError);
       // Don't fail the OAuth process if sheet creation fails
@@ -606,11 +610,18 @@ async function handleExchangeCodeNoAuth(req: Request) {
     }
 
     // Return success HTML that notifies the parent window and closes the popup
+    const message = spreadsheetCreated 
+      ? `Google Sheets integration completed successfully! Spreadsheet created: ${spreadsheetId}`
+      : 'Google authentication successful, but spreadsheet creation failed. You can retry from the dashboard.';
+    
     return new Response(
       `<html><body><script>
+        console.log('OAuth completion result:', { spreadsheetCreated: ${spreadsheetCreated}, spreadsheetId: '${spreadsheetId}' });
         window.opener.postMessage({ 
           type: 'oauth_success', 
-          message: 'Google Sheets integration completed successfully!' 
+          message: '${message}',
+          spreadsheetCreated: ${spreadsheetCreated},
+          spreadsheetId: '${spreadsheetId}'
         }, '*');
         window.close();
       </script></body></html>`,

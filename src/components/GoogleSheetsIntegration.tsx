@@ -344,6 +344,32 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
             </div>
           )}
 
+          {/* Authenticated State - OAuth success but no spreadsheet */}
+          {integrationStatus === 'authenticated' && (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 mx-auto bg-orange-50 rounded-full flex items-center justify-center mb-4">
+                <AlertTriangle className="h-8 w-8 text-orange-600" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Spreadsheet Creation Needed</h3>
+              <p className="text-muted-foreground mb-6">
+                Google authentication successful, but spreadsheet creation failed. Click below to retry.
+              </p>
+              <Button onClick={handleConnectAndSetup} disabled={loading} size="lg" variant="outline">
+                {loading ? (
+                  <>
+                    <Circle className="h-4 w-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    Create Spreadsheet Now
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+
           {/* Connected State */}
           {integrationStatus === 'connected' && integration?.google_sheet_id && (
             <div className="space-y-6">
