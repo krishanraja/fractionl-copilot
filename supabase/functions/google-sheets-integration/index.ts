@@ -403,18 +403,35 @@ async function handleCreateSheet(body: any, supabase: any, userId: string) {
 async function handleExportData(body: any, supabase: any, userId: string) {
   const { dataType, month } = body;
   
-  const { data: integration } = await supabase
+  // Get the user's stored access token using secure function
+  const { data: tokens, error: tokenError } = await supabase
+    .rpc('get_user_google_tokens', { target_user_id: userId });
+  
+  if (tokenError || !tokens || tokens.length === 0) {
+    return new Response(JSON.stringify({ error: 'No valid tokens found' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+  
+  const tokenData = tokens[0];
+  
+  // Get sheet ID separately
+  const { data: integration, error: integrationError } = await supabase
     .from('sheets_integrations')
-    .select('*')
+    .select('google_sheet_id')
     .eq('user_id', userId)
     .single();
 
-  if (!integration || !integration.access_token) {
-    throw new Error('No Google Sheets integration found');
+  if (integrationError || !integration || !integration.google_sheet_id) {
+    return new Response(JSON.stringify({ error: 'No Google Sheets integration found' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 
   // Decrypt the access token for API calls
-  const decryptedAccessToken = await decryptToken(integration.access_token);
+  const decryptedAccessToken = await decryptToken(tokenData.access_token);
 
   let data, range, values;
 
@@ -852,18 +869,35 @@ async function formatSpreadsheet(accessToken: string, spreadsheetId: string) {
 }
 
 async function handleRefreshAllData(body: any, supabase: any, userId: string) {
-  const { data: integration } = await supabase
+  // Get the user's stored access token using secure function
+  const { data: tokens, error: tokenError } = await supabase
+    .rpc('get_user_google_tokens', { target_user_id: userId });
+  
+  if (tokenError || !tokens || tokens.length === 0) {
+    return new Response(JSON.stringify({ error: 'No valid tokens found' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+  
+  const tokenData = tokens[0];
+  
+  // Get sheet ID separately
+  const { data: integration, error: integrationError } = await supabase
     .from('sheets_integrations')
-    .select('*')
+    .select('google_sheet_id')
     .eq('user_id', userId)
     .single();
 
-  if (!integration || !integration.access_token || !integration.google_sheet_id) {
-    throw new Error('No Google Sheets integration found or incomplete setup');
+  if (integrationError || !integration || !integration.google_sheet_id) {
+    return new Response(JSON.stringify({ error: 'No Google Sheets integration found or incomplete setup' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 
   // Decrypt the access token for API calls
-  const decryptedAccessToken = await decryptToken(integration.access_token);
+  const decryptedAccessToken = await decryptToken(tokenData.access_token);
 
   // Clear existing data and repopulate
   await populateAllSheets(decryptedAccessToken, integration.google_sheet_id, supabase, userId);

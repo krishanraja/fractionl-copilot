@@ -450,7 +450,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_google_tokens: {
+        Args: { target_user_id: string }
+        Returns: {
+          access_token: string
+          refresh_token: string
+          token_expires_at: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

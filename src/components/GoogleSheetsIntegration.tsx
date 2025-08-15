@@ -79,7 +79,7 @@ export const GoogleSheetsIntegration = ({ selectedMonth }: GoogleSheetsIntegrati
 
       const { data, error } = await supabase
         .from('sheets_integrations')
-        .select('*')
+        .select('id, user_id, google_sheet_id, sheet_name, integration_type, sync_status, sync_enabled, last_sync_at, sync_error, settings, created_at, updated_at, token_expires_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1);
