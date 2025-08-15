@@ -323,14 +323,18 @@ export type Database = {
           google_sheet_id: string | null
           id: string
           integration_type: string
+          is_token_compromised: boolean | null
           last_sync_at: string | null
           refresh_token: string | null
+          security_hash: string | null
           settings: Json | null
           sheet_name: string | null
           sync_enabled: boolean | null
           sync_error: string | null
           sync_status: string | null
+          token_access_count: number | null
           token_expires_at: string | null
+          token_last_rotated_at: string | null
           updated_at: string
           user_id: string
         }
@@ -340,14 +344,18 @@ export type Database = {
           google_sheet_id?: string | null
           id?: string
           integration_type?: string
+          is_token_compromised?: boolean | null
           last_sync_at?: string | null
           refresh_token?: string | null
+          security_hash?: string | null
           settings?: Json | null
           sheet_name?: string | null
           sync_enabled?: boolean | null
           sync_error?: string | null
           sync_status?: string | null
+          token_access_count?: number | null
           token_expires_at?: string | null
+          token_last_rotated_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -357,14 +365,18 @@ export type Database = {
           google_sheet_id?: string | null
           id?: string
           integration_type?: string
+          is_token_compromised?: boolean | null
           last_sync_at?: string | null
           refresh_token?: string | null
+          security_hash?: string | null
           settings?: Json | null
           sheet_name?: string | null
           sync_enabled?: boolean | null
           sync_error?: string | null
           sync_status?: string | null
+          token_access_count?: number | null
           token_expires_at?: string | null
+          token_last_rotated_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -457,6 +469,19 @@ export type Database = {
           refresh_token: string
           token_expires_at: string
         }[]
+      }
+      log_token_access: {
+        Args: {
+          access_type: string
+          additional_info?: Json
+          success?: boolean
+          target_user_id: string
+        }
+        Returns: undefined
+      }
+      verify_token_integrity: {
+        Args: { target_user_id: string }
+        Returns: boolean
       }
     }
     Enums: {

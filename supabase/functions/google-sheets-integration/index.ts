@@ -101,6 +101,45 @@ async function decryptToken(encryptedToken: string): Promise<string> {
   }
 }
 
+async function validateTokenSecurity(supabase: any, userId: string): Promise<boolean> {
+  try {
+    // Check token integrity
+    const { data: isValid, error } = await supabase
+      .rpc('verify_token_integrity', { target_user_id: userId });
+    
+    if (error || !isValid) {
+      console.error('Token integrity check failed:', error);
+      await supabase.rpc('log_token_access', {
+        target_user_id: userId,
+        access_type: 'integrity_check',
+        success: false,
+        additional_info: { error: error?.message || 'Token integrity validation failed' }
+      });
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Token security validation error:', error);
+    return false;
+  }
+}
+
+function getGoogleCredentials(): GoogleCredentials {
+  const rawCredentials = Deno.env.get('GOOGLE_OAUTH_CREDENTIALS');
+  if (!rawCredentials) {
+    throw new Error('GOOGLE_OAUTH_CREDENTIALS not configured');
+  }
+  
+  const credentials: GoogleCredentials = JSON.parse(rawCredentials);
+  if (!credentials.web) {
+    throw new Error('Invalid Google OAuth credentials format');
+  }
+  
+  return credentials;
+}
+
+// Enhanced main Deno.serve handler with security improvements
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -108,19 +147,20 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Parse request URL first to check for actions that don't need authentication
     const url = new URL(req.url);
     const action = url.searchParams.get('action');
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state');
     
+    console.log(`Google Sheets Integration request: ${action}`);
+
     // Handle Google OAuth callback - detect by presence of code and state parameters
     if (code && state) {
       console.log('Detected Google OAuth callback with code and state parameters');
       return await handleExchangeCodeNoAuth(req);
     }
-    
-    // Add test endpoint for secret verification (no auth needed) - FORCE DEPLOYMENT v3.1
+
+    // Handle unauthenticated actions first
     if (action === 'test_secret') {
       const rawCredentials = Deno.env.get('GOOGLE_OAUTH_CREDENTIALS');
       const hasSecret = !!rawCredentials;
@@ -128,11 +168,18 @@ Deno.serve(async (req) => {
       
       let isValidJson = false;
       let parseError = null;
+      let credentialStructure = null;
+      
       if (hasSecret) {
         try { 
           const parsed = JSON.parse(rawCredentials!); 
           isValidJson = true;
-          console.log('Test endpoint - secret parsed successfully, has web:', !!parsed.web);
+          credentialStructure = {
+            hasWeb: !!parsed.web,
+            hasClientId: !!parsed.web?.client_id,
+            hasClientSecret: !!parsed.web?.client_secret
+          };
+          console.log('Test endpoint - secret parsed successfully');
         } catch (e) { 
           parseError = e.message;
           console.log('Test endpoint - JSON parse failed:', e.message);
@@ -145,125 +192,114 @@ Deno.serve(async (req) => {
           secretLength, 
           isValidJson,
           parseError,
+          credentialStructure,
           timestamp: new Date().toISOString(),
-          deploymentVersion: DEPLOYMENT_VERSION,
-          message: 'Secret test endpoint - v3.1 deployment - NO AUTH REQUIRED'
+          deploymentVersion: DEPLOYMENT_VERSION
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Handle exchange_code action without authentication (Google OAuth callback)
     if (action === 'exchange_code') {
+      const body = await req.json();
       return await handleExchangeCodeNoAuth(req);
     }
 
-    // For all other actions, require authentication
-    // Initialize Supabase client for authenticated requests
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    const authHeader = req.headers.get('Authorization');
+    // All other actions require authentication
+    const authHeader = req.headers.get('authorization');
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('Authenticated user:', user.id, 'Action:', action);
-    
-    if (!action) {
-      throw new Error('Missing action parameter');
-    }
-
-    let body = {};
-    try {
-      const requestText = await req.text();
-      if (requestText) {
-        body = JSON.parse(requestText);
-      }
-    } catch (parseError) {
-      console.log('Request body parsing failed, using empty object:', parseError);
-    }
-
-    // Parse Google OAuth credentials with enhanced error reporting
-    const rawCredentials = Deno.env.get('GOOGLE_OAUTH_CREDENTIALS');
-    console.log(`Deployment ${DEPLOYMENT_VERSION} - Secret check:`, {
-      exists: !!rawCredentials, 
-      length: rawCredentials?.length || 0,
-      first10chars: rawCredentials?.substring(0, 10) || 'none',
-      hasEncryptionKey: !!Deno.env.get('TOKEN_ENCRYPTION_KEY')
-    });
-    
-    if (!rawCredentials?.trim()) {
-      const errorMsg = `GOOGLE_OAUTH_CREDENTIALS environment variable is ${!rawCredentials ? 'not set' : 'empty'}`;
-      console.error('Secret error:', errorMsg);
-      throw new Error(errorMsg);
-    }
-    
-    let credentials: GoogleCredentials;
-    try {
-      credentials = JSON.parse(rawCredentials);
-      console.log('Credentials parsed successfully - Structure check:', {
-        hasWeb: !!credentials.web,
-        hasClientId: !!credentials.web?.client_id,
-        hasClientSecret: !!credentials.web?.client_secret
+      return new Response(JSON.stringify({ error: 'Authorization header missing' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
-      
-      if (!credentials.web || !credentials.web.client_id || !credentials.web.client_secret) {
-        throw new Error('Invalid credentials format: missing required web credentials');
-      }
-    } catch (parseError) {
-      console.error('JSON parse failed for credentials:', parseError.message);
-      throw new Error(`Invalid GOOGLE_OAUTH_CREDENTIALS format: ${parseError.message}`);
     }
+
+    // Initialize Supabase client for authenticated requests
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.53.0');
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+      global: {
+        headers: {
+          Authorization: authHeader,
+        },
+      },
+    });
+
+    // Get user from JWT
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      console.error('Authentication failed:', userError);
+      return new Response(JSON.stringify({ error: 'Authentication failed' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const userId = user.id;
+    console.log(`Authenticated user: ${userId}`);
+
+    // Parse request body for authenticated actions
+    const body = req.method === 'POST' ? await req.json() : {};
+
+    // Route to appropriate handler with enhanced security
     switch (action) {
       case 'auth_url':
-        return handleAuthUrl(credentials, user.id);
-      
+        return await handleAuthUrl(body, supabase, userId);
       case 'create_sheet':
-        return await handleCreateSheet(body, supabase, user.id);
-      
+        // Validate token security before sensitive operations
+        if (!(await validateTokenSecurity(supabase, userId))) {
+          return new Response(JSON.stringify({ error: 'Token security validation failed' }), {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        return await handleCreateSheet(body, supabase, userId);
       case 'export_data':
-        return await handleExportData(body, supabase, user.id);
-      
+        // Validate token security before data operations
+        if (!(await validateTokenSecurity(supabase, userId))) {
+          return new Response(JSON.stringify({ error: 'Token security validation failed' }), {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        return await handleExportData(body, supabase, userId);
       case 'refresh_all_data':
-        return await handleRefreshAllData(body, supabase, user.id);
-      
+        // Validate token security before refresh operations
+        if (!(await validateTokenSecurity(supabase, userId))) {
+          return new Response(JSON.stringify({ error: 'Token security validation failed' }), {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        return await handleRefreshAllData(body, supabase, userId);
       case 'import_data':
-        return await handleImportData(body, supabase, user.id);
-      
+        return await handleImportData(body, supabase, userId);
       default:
-        throw new Error('Invalid action');
+        return new Response(JSON.stringify({ error: 'Invalid action' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
     }
   } catch (error) {
-    console.error('Edge function error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    console.error('Error in Google Sheets integration:', error);
+    return new Response(JSON.stringify({ 
+      error: 'Internal server error',
+      details: error.message 
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 });
 
-function handleAuthUrl(credentials: GoogleCredentials, userId: string) {
-  console.log('Credentials structure:', JSON.stringify(credentials, null, 2));
+function handleAuthUrl(body: any, supabase: any, userId: string) {
+  const credentials = getGoogleCredentials();
   
   // Validate credentials structure
   if (!credentials.web) {
@@ -429,6 +465,14 @@ async function handleExportData(body: any, supabase: any, userId: string) {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
+
+  // Log token access for audit trail
+  await supabase.rpc('log_token_access', {
+    target_user_id: userId,
+    access_type: 'api_call',
+    success: true,
+    additional_info: { operation: 'export_data', data_type: dataType }
+  });
 
   // Decrypt the access token for API calls
   const decryptedAccessToken = await decryptToken(tokenData.access_token);
@@ -895,6 +939,14 @@ async function handleRefreshAllData(body: any, supabase: any, userId: string) {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
+
+  // Log token access for audit trail
+  await supabase.rpc('log_token_access', {
+    target_user_id: userId,
+    access_type: 'refresh_operation',
+    success: true,
+    additional_info: { operation: 'refresh_all_data' }
+  });
 
   // Decrypt the access token for API calls
   const decryptedAccessToken = await decryptToken(tokenData.access_token);
