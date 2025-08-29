@@ -78,404 +78,317 @@ export const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center animate-glow-pulse">
-              <Brain className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <div>
-              <img 
-                src="/lovable-uploads/30f9efde-5245-4c24-b26e-1e368f4a5a1b.png" 
-                alt="Fractionl.ai Logo" 
-                className="h-8 w-auto"
-              />
-              <p className="text-muted-foreground">AI Business Intelligence Dashboard</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-3">
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-48 bg-input border-border">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {availableMonths.map(month => (
-                  <SelectItem key={month} value={month}>
-                    {formatMonth(month)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            {/* View Toggle */}
-            <div className="flex items-center bg-muted rounded-lg p-1">
-              <Button
-                variant={dashboardView === 'pipeline' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setDashboardView('pipeline')}
-                className="text-xs"
-              >
-                <Zap className="w-3 h-3 mr-1" />
-                Pipeline
-              </Button>
-              <Button
-                variant={dashboardView === 'planning' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setDashboardView('planning')}
-                className="text-xs"
-              >
-                <Settings className="w-3 h-3 mr-1" />
-                Planning
-              </Button>
-              <Button
-                variant={dashboardView === 'ai-strategy' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setDashboardView('ai-strategy')}
-                className="text-xs"
-              >
-                <Brain className="w-3 h-3 mr-1" />
-                AI Strategy
-              </Button>
-              <Button
-                variant={dashboardView === 'sheets' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setDashboardView('sheets')}
-                className="text-xs"
-              >
-                <Sheet className="w-3 h-3 mr-1" />
-                Sheets
-              </Button>
-              <Button
-                variant={dashboardView === 'customer-analytics' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setDashboardView('customer-analytics')}
-                className="text-xs"
-              >
-                <Users className="w-3 h-3 mr-1" />
-                Analytics
-              </Button>
+    <div className="min-h-screen bg-background">
+      {/* Fixed Header with NYC Editorial styling */}
+      <header className="sticky top-0 z-50 glass border-b border-border/50 backdrop-blur-sm">
+        <div className="container-width">
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center shadow-lg">
+                  <Brain className="w-6 h-6 text-primary-foreground" />
+                </div>
+                <div>
+                  <img 
+                    src="/lovable-uploads/30f9efde-5245-4c24-b26e-1e368f4a5a1b.png" 
+                    alt="Fractionl.ai Logo" 
+                    className="h-8 w-auto"
+                  />
+                  <p className="text-muted-foreground text-sm">AI Business Intelligence</p>
+                </div>
+              </div>
             </div>
             
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={signOut}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
+            <div className="flex items-center space-x-4">
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger className="w-52 glass border-border/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="glass">
+                  {availableMonths.map(month => (
+                    <SelectItem key={month} value={month}>
+                      {formatMonth(month)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {/* NYC Editorial Navigation */}
+              <nav className="flex items-center bg-secondary/50 rounded-xl p-1 glass">
+                <Button
+                  variant={dashboardView === 'pipeline' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setDashboardView('pipeline')}
+                  className="text-sm font-medium transition-all"
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  Pipeline
+                </Button>
+                <Button
+                  variant={dashboardView === 'planning' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setDashboardView('planning')}
+                  className="text-sm font-medium transition-all"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Planning
+                </Button>
+                <Button
+                  variant={dashboardView === 'ai-strategy' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setDashboardView('ai-strategy')}
+                  className="text-sm font-medium transition-all"
+                >
+                  <Brain className="w-4 h-4 mr-2" />
+                  AI Strategy
+                </Button>
+                <Button
+                  variant={dashboardView === 'sheets' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setDashboardView('sheets')}
+                  className="text-sm font-medium transition-all"
+                >
+                  <Sheet className="w-4 h-4 mr-2" />
+                  Sheets
+                </Button>
+                <Button
+                  variant={dashboardView === 'customer-analytics' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setDashboardView('customer-analytics')}
+                  className="text-sm font-medium transition-all"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Analytics
+                </Button>
+              </nav>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={signOut}
+                className="glass border-border/50"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
+      </header>
 
-        {/* Show pipeline content based on view */}
-        {dashboardView === 'pipeline' && !loading && (
-          <MotivationalHeader
-            streakData={{
-              currentStreak: dailyProgress.length,
-              bestStreak: dailyProgress.length,
-              totalDaysTracked: dailyProgress.length,
-              lastUpdated: new Date().toISOString()
-            }}
-            achievements={[]}
-            overallScore={overallScore}
-            todaysWins={3}
-            monthProgress={85}
-            motivationalMessage="Keep up the great work! Every step forward counts toward your success."
-          />
-        )}
+      {/* Main Content with NYC Editorial spacing */}
+      <main className="section-padding">
+        <div className="container-width space-y-12">
 
-        {/* Dynamic Content Based on View */}
-        {dashboardView === 'planning' && !loading ? (
-          /* Planning View */
-          <div className="space-y-8">
-            <RevenueGoalsSetting 
-              goals={monthlyGoals}
-              onUpdateGoals={updateMonthlyGoals}
-              selectedMonth={selectedMonth}
-            />
-            
-            <BusinessDevelopmentGoals 
-              goals={monthlyGoals}
-              onUpdateGoals={updateMonthlyGoals}
-              selectedMonth={selectedMonth}
-            />
-            
-            <CurrentStateTracking 
-              snapshots={monthlySnapshots}
-              onUpdateSnapshots={updateMonthlySnapshots}
-              selectedMonth={selectedMonth}
-            />
+          {/* Hero Section for Pipeline View */}
+          {dashboardView === 'pipeline' && !loading && (
+            <section className="animate-fade-in-up">
+              <MotivationalHeader
+                streakData={{
+                  currentStreak: dailyProgress.length,
+                  bestStreak: dailyProgress.length,
+                  totalDaysTracked: dailyProgress.length,
+                  lastUpdated: new Date().toISOString()
+                }}
+                achievements={[]}
+                overallScore={overallScore}
+                todaysWins={3}
+                monthProgress={85}
+                motivationalMessage="Keep up the great work! Every step forward counts toward your success."
+              />
+            </section>
+          )}
 
-            {/* Financial Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Revenue Target</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-primary">
-                    ${(monthlyGoals?.revenue_forecast || 0).toLocaleString()}
-                  </div>
-                  <p className="text-sm text-muted-foreground">Monthly Goal</p>
-                </CardContent>
-              </Card>
+          {/* NYC Editorial Planning Section */}
+          {dashboardView === 'planning' && !loading ? (
+            <section className="space-y-16 animate-fade-in">
+              <div className="text-center">
+                <h1 className="headline-lg mb-6">Business Planning Hub</h1>
+                <p className="body-lg text-muted-foreground max-w-2xl mx-auto">
+                  Set your goals, track your progress, and build your path to success with precision and clarity.
+                </p>
+              </div>
               
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Cost Budget</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-orange-600">
-                    ${(monthlyGoals?.cost_budget || 0).toLocaleString()}
+              <div className="space-y-12">
+                <RevenueGoalsSetting 
+                  goals={monthlyGoals}
+                  onUpdateGoals={updateMonthlyGoals}
+                  selectedMonth={selectedMonth}
+                />
+                
+                <BusinessDevelopmentGoals 
+                  goals={monthlyGoals}
+                  onUpdateGoals={updateMonthlyGoals}
+                  selectedMonth={selectedMonth}
+                />
+                
+                <CurrentStateTracking 
+                  snapshots={monthlySnapshots}
+                  onUpdateSnapshots={updateMonthlySnapshots}
+                  selectedMonth={selectedMonth}
+                />
+
+                {/* Financial Overview with NYC Editorial Cards */}
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <h2 className="headline-md mb-4">Financial Overview</h2>
+                    <p className="body-md text-muted-foreground">
+                      Track your key financial metrics at a glance
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">Monthly Budget</p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Net Profit</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    ${netProfit.toLocaleString()}
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {profitMargin.toFixed(1)}% margin
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        ) : dashboardView === 'pipeline' && !loading ? (
-          /* Pipeline View */
-          <div>
-            <PipelineContent
-              selectedMonth={selectedMonth}
-              monthlyGoals={monthlyGoals}
-            />
-          </div>
-        ) : dashboardView === 'ai-strategy' ? (
-          /* AI Strategy Hub */
-          <AIStrategyHub 
-            currentMetrics={{
-              currentGoals: {
-                month: selectedMonth,
-                grossRevenue: monthlyGoals?.revenue_forecast || 0,
-                totalCosts: monthlyGoals?.cost_budget || 0,
-                siteVisits: monthlySnapshots?.site_visits || 0,
-                socialFollowers: monthlySnapshots?.social_followers || 0,
-                prArticles: monthlyGoals?.pr_target || 0,
-                workshopCustomers: monthlyGoals?.workshops_target || 0,
-                advisoryCustomers: monthlyGoals?.advisory_target || 0
-              },
-              todaysActuals: {
-                date: new Date().toISOString().split('T')[0],
-                month: selectedMonth,
-                grossRevenue: 0, // Revenue is now tracked separately
-                totalCosts: 0, // Costs are now tracked separately
-                siteVisits: monthlySnapshots?.site_visits || 0,
-                socialFollowers: monthlySnapshots?.social_followers || 0,
-                prArticles: todaysProgress?.pr_progress || 0,
-                workshopCustomers: todaysProgress?.workshops_progress || 0,
-                advisoryCustomers: todaysProgress?.advisory_progress || 0
-              },
-              overallScore,
-              monthProgress: 85,
-              totalCosts,
-              netProfit,
-              profitMargin
-            }}
-            monthlyGoals={{
-              month: selectedMonth,
-              grossRevenue: monthlyGoals?.revenue_forecast || 0,
-              totalCosts: monthlyGoals?.cost_budget || 0,
-              siteVisits: monthlySnapshots?.site_visits || 0,
-              socialFollowers: monthlySnapshots?.social_followers || 0,
-              prArticles: monthlyGoals?.pr_target || 0,
-              workshopCustomers: monthlyGoals?.workshops_target || 0,
-              advisoryCustomers: monthlyGoals?.advisory_target || 0
-            }}
-          />
-        ) : dashboardView === 'sheets' ? (
-          /* Google Sheets Integration */
-          <GoogleSheetsIntegration selectedMonth={selectedMonth} />
-        ) : dashboardView === 'customer-analytics' ? (
-          /* Customer Analytics */
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Customer Tool Analytics</h2>
-              <p className="text-muted-foreground">
-                Monitor usage and performance of your 4 customer-facing AI tools
-              </p>
-            </div>
-            <CustomerToolAnalytics 
-              toolAnalytics={toolAnalytics}
-              leadInsights={leadInsights}
-              loading={analyticsLoading}
-            />
-          </div>
-        ) : null}
-
-        {loading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-lg text-muted-foreground">Loading tracking data...</div>
-          </div>
-        )}
-
-        {/* Remove old tracking view content */}
-        {false && (
-          <MetricsOverview goals={{
-            month: selectedMonth,
-            grossRevenue: monthlyGoals?.revenue_forecast || 0,
-            totalCosts: monthlyGoals?.cost_budget || 0,
-            siteVisits: monthlySnapshots?.site_visits || 0,
-            socialFollowers: monthlySnapshots?.social_followers || 0,
-            prArticles: monthlyGoals?.pr_target || 0,
-            workshopCustomers: monthlyGoals?.workshops_target || 0,
-            advisoryCustomers: monthlyGoals?.advisory_target || 0
-          }} />
-        )}
-
-        {/* Remove old tracking view content */}
-        {false && (
-          <Tabs defaultValue="analytics" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 bg-muted">
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger value="costs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Cost Tracking
-            </TabsTrigger>
-            <TabsTrigger value="projections" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              Projections
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="analytics" className="space-y-4">
-            {/* Charts and Analytics */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="border-border bg-card">
-                <CardHeader>
-                  <CardTitle className="text-card-foreground">Revenue vs Costs Trend</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={[
-                      { month: 'Jan', revenue: 8500, costs: 2800 },
-                      { month: 'Feb', revenue: 9200, costs: 3100 },
-                      { month: 'Current', revenue: monthlyGoals?.revenue_forecast || 0, costs: monthlyGoals?.cost_budget || 0 }
-                    ]}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-                      <YAxis stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))', 
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px'
-                        }} 
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="revenue" 
-                        stroke="hsl(var(--primary))" 
-                        strokeWidth={3}
-                        name="Revenue"
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="costs" 
-                        stroke="hsl(var(--destructive))" 
-                        strokeWidth={3}
-                        name="Costs"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border bg-card">
-                <CardHeader>
-                  <CardTitle className="text-card-foreground">Business Development Progress</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={[
-                      { category: 'Workshops', target: monthlyGoals?.workshops_target || 0, current: dailyProgress.reduce((sum, day) => sum + (day.workshops_progress || 0), 0) },
-                      { category: 'Advisory', target: monthlyGoals?.advisory_target || 0, current: dailyProgress.reduce((sum, day) => sum + (day.advisory_progress || 0), 0) },
-                      { category: 'Lectures', target: monthlyGoals?.lectures_target || 0, current: dailyProgress.reduce((sum, day) => sum + (day.lectures_progress || 0), 0) },
-                      { category: 'PR', target: monthlyGoals?.pr_target || 0, current: dailyProgress.reduce((sum, day) => sum + (day.pr_progress || 0), 0) }
-                    ]}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="category" stroke="hsl(var(--muted-foreground))" />
-                      <YAxis stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))', 
-                          border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px'
-                        }} 
-                      />
-                      <Bar dataKey="target" fill="hsl(var(--muted))" name="Target" />
-                      <Bar dataKey="current" fill="hsl(var(--primary))" name="Current" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="costs">
-            <CostTracker 
-              costs={currentCosts}
-              onUpdateCosts={updateCosts}
-            />
-          </TabsContent>
-
-
-          <TabsContent value="projections">
-            <Card className="border-border bg-card">
-              <CardHeader>
-                <CardTitle className="flex items-center text-card-foreground">
-                  <Target className="w-5 h-5 mr-2 text-primary" />
-                  Monthly Projections
-                </CardTitle>
-                <CardDescription>
-                  Performance insights and forecasting
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 border rounded-lg">
-                      <h4 className="font-semibold text-lg">Revenue Projection</h4>
-                      <p className="text-2xl font-bold text-primary">
-                        ${Math.round((monthlyGoals?.revenue_forecast || 0) * (overallScore / 100)).toLocaleString()}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Based on current progress ({overallScore}%)
-                      </p>
-                    </div>
-                    <div className="p-4 border rounded-lg">
-                      <h4 className="font-semibold text-lg">Growth Rate</h4>
-                      <p className="text-2xl font-bold text-green-600">
-                        +{((overallScore - 70) / 70 * 100).toFixed(1)}%
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Compared to baseline performance
-                      </p>
-                    </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <Card className="card-hover border-0 shadow-sm glass">
+                      <CardHeader className="pb-4">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="p-2 rounded-lg bg-primary/10">
+                            <Target className="w-5 h-5 text-primary" />
+                          </div>
+                          <CardTitle className="text-xl font-semibold">Revenue Target</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-primary mb-2">
+                          ${(monthlyGoals?.revenue_forecast || 0).toLocaleString()}
+                        </div>
+                        <p className="text-muted-foreground">Monthly Goal</p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card className="card-hover border-0 shadow-sm glass">
+                      <CardHeader className="pb-4">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="p-2 rounded-lg bg-warning/10">
+                            <TrendingDown className="w-5 h-5 text-warning" />
+                          </div>
+                          <CardTitle className="text-xl font-semibold">Cost Budget</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-warning mb-2">
+                          ${(monthlyGoals?.cost_budget || 0).toLocaleString()}
+                        </div>
+                        <p className="text-muted-foreground">Monthly Budget</p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card className="card-hover border-0 shadow-sm glass">
+                      <CardHeader className="pb-4">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className={`p-2 rounded-lg ${netProfit >= 0 ? 'bg-success/10' : 'bg-destructive/10'}`}>
+                            {netProfit >= 0 ? (
+                              <TrendingUp className="w-5 h-5 text-success" />
+                            ) : (
+                              <TrendingDown className="w-5 h-5 text-destructive" />
+                            )}
+                          </div>
+                          <CardTitle className="text-xl font-semibold">Net Profit</CardTitle>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className={`text-3xl font-bold mb-2 ${netProfit >= 0 ? 'text-success' : 'text-destructive'}`}>
+                          ${netProfit.toLocaleString()}
+                        </div>
+                        <p className="text-muted-foreground">
+                          {profitMargin.toFixed(1)}% margin
+                        </p>
+                      </CardContent>
+                    </Card>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-        )}
-      </div>
+              </div>
+            </section>
+          ) : dashboardView === 'pipeline' && !loading ? (
+            /* Pipeline View with NYC Editorial styling */
+            <section className="animate-fade-in">
+              <PipelineContent
+                selectedMonth={selectedMonth}
+                monthlyGoals={monthlyGoals}
+              />
+            </section>
+          ) : dashboardView === 'ai-strategy' ? (
+            /* AI Strategy Hub with NYC Editorial styling */
+            <section className="animate-fade-in">
+              <AIStrategyHub 
+                currentMetrics={{
+                  currentGoals: {
+                    month: selectedMonth,
+                    grossRevenue: monthlyGoals?.revenue_forecast || 0,
+                    totalCosts: monthlyGoals?.cost_budget || 0,
+                    siteVisits: monthlySnapshots?.site_visits || 0,
+                    socialFollowers: monthlySnapshots?.social_followers || 0,
+                    prArticles: monthlyGoals?.pr_target || 0,
+                    workshopCustomers: monthlyGoals?.workshops_target || 0,
+                    advisoryCustomers: monthlyGoals?.advisory_target || 0
+                  },
+                  todaysActuals: {
+                    date: new Date().toISOString().split('T')[0],
+                    month: selectedMonth,
+                    grossRevenue: 0,
+                    totalCosts: 0,
+                    siteVisits: monthlySnapshots?.site_visits || 0,
+                    socialFollowers: monthlySnapshots?.social_followers || 0,
+                    prArticles: todaysProgress?.pr_progress || 0,
+                    workshopCustomers: todaysProgress?.workshops_progress || 0,
+                    advisoryCustomers: todaysProgress?.advisory_progress || 0
+                  },
+                  overallScore,
+                  monthProgress: 85,
+                  totalCosts,
+                  netProfit,
+                  profitMargin
+                }}
+                monthlyGoals={{
+                  month: selectedMonth,
+                  grossRevenue: monthlyGoals?.revenue_forecast || 0,
+                  totalCosts: monthlyGoals?.cost_budget || 0,
+                  siteVisits: monthlySnapshots?.site_visits || 0,
+                  socialFollowers: monthlySnapshots?.social_followers || 0,
+                  prArticles: monthlyGoals?.pr_target || 0,
+                  workshopCustomers: monthlyGoals?.workshops_target || 0,
+                  advisoryCustomers: monthlyGoals?.advisory_target || 0
+                }}
+              />
+            </section>
+          ) : dashboardView === 'sheets' ? (
+            /* Google Sheets Integration with NYC Editorial styling */
+            <section className="animate-fade-in">
+              <div className="text-center mb-12">
+                <h1 className="headline-lg mb-6">Data Integration Hub</h1>
+                <p className="body-lg text-muted-foreground max-w-2xl mx-auto">
+                  Seamlessly sync your business data with Google Sheets for advanced analysis and reporting.
+                </p>
+              </div>
+              <GoogleSheetsIntegration selectedMonth={selectedMonth} />
+            </section>
+          ) : dashboardView === 'customer-analytics' ? (
+            /* Customer Analytics with NYC Editorial styling */
+            <section className="animate-fade-in">
+              <div className="text-center mb-12">
+                <h1 className="headline-lg mb-6">Customer Analytics</h1>
+                <p className="body-lg text-muted-foreground max-w-2xl mx-auto">
+                  Monitor usage and performance of your 4 customer-facing AI tools with detailed insights and metrics.
+                </p>
+              </div>
+              <CustomerToolAnalytics 
+                toolAnalytics={toolAnalytics}
+                leadInsights={leadInsights}
+                loading={analyticsLoading}
+              />
+            </section>
+          ) : null}
+
+          {loading && (
+            <section className="flex items-center justify-center py-24">
+              <div className="text-center">
+                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <div className="body-md text-muted-foreground">Loading your business intelligence...</div>
+              </div>
+            </section>
+          )}
+
+        </div>
+      </main>
     </div>
   );
 };
