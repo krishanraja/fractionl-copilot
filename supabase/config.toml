@@ -18,11 +18,13 @@ refresh_token_reuse_interval = 10
 enable_signup = true
 
 [functions.ai-strategic-analysis]
-verify_jwt = true
+verify_jwt = false
 
 [functions.google-sheets-integration]
 verify_jwt = false
 
 [functions.test-google-secret]
 verify_jwt = false
-# Force redeployment with config change
+
+[functions.generate-user-insights]
+verify_jwt = false
