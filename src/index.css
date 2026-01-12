@@ -2,133 +2,135 @@
 @tailwind components;
 @tailwind utilities;
 
-/* NYC Editorial Design System - Fractionl AI Business Intelligence
-Clean, professional, generous whitespace with sophisticated typography
+/* Executive Design System - Fractionl AI Portfolio Intelligence
+Refined, sophisticated, executive-grade aesthetics with deep royal purple
 */
 
 @layer base {
   :root {
-    /* Color palette - HSL for Tailwind hsl(var(--token)) usage */
-    --primary: 287 45% 55%;
-    --primary-light: 287 50% 65%;
+    /* Color palette - Deep Royal Purple (Executive-Grade) */
+    --primary: 270 50% 28%;
+    --primary-light: 270 45% 38%;
     --primary-foreground: 0 0% 100%;
 
-    --accent: 287 50% 65%;
+    --accent: 270 45% 38%;
     --accent-foreground: 0 0% 100%;
 
     --background: 0 0% 98%;
     --surface: 0 0% 100%;
     --surface-muted: 0 0% 96.5%;
 
-    --foreground: 0 0% 6.7%;
-    --foreground-secondary: 0 0% 45.1%;
-    --foreground-muted: 0 0% 57.8%;
+    --foreground: 0 0% 8%;
+    --foreground-secondary: 0 0% 40%;
+    --foreground-muted: 0 0% 55%;
 
-    --success: 160 84% 39%;
-    --warning: 38 92% 50%;
-    --destructive: 0 84% 60%;
+    --success: 160 84% 32%;
+    --warning: 38 92% 45%;
+    --destructive: 0 72% 50%;
 
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 287 45% 55%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 270 50% 28%;
 
     /* Legacy mappings for compatibility */
-    --secondary: 0 0% 96.5%;
-    --secondary-foreground: 0 0% 6.7%;
-    --muted: 0 0% 96.5%;
-    --muted-foreground: 0 0% 45.1%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 8%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 40%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 6.7%;
+    --card-foreground: 0 0% 8%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 6.7%;
+    --popover-foreground: 0 0% 8%;
 
-    /* Radius and shadows */
-    --radius: 1rem;
-    --radius-lg: 1.5rem;
+    /* Radius and shadows - More refined */
+    --radius: 0.75rem;
+    --radius-lg: 1rem;
 
-    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
-    --shadow-purple: 0 10px 30px -10px hsl(287 45% 55% / 0.3);
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.04);
+    --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.08);
+    --shadow-lg: 0 12px 24px -4px hsl(0 0% 0% / 0.12);
+    --shadow-purple: 0 8px 24px -8px hsl(270 50% 28% / 0.25);
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-light)));
-    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-light)));
-    --gradient-accent: linear-gradient(135deg, hsl(var(--primary-light)), hsl(var(--primary)));
+    /* Gradients - Deeper, more sophisticated */
+    --gradient-primary: linear-gradient(135deg, hsl(270 50% 28%), hsl(270 45% 38%));
+    --gradient-hero: linear-gradient(135deg, hsl(270 55% 22%), hsl(270 50% 32%));
+    --gradient-accent: linear-gradient(135deg, hsl(270 45% 38%), hsl(270 50% 28%));
+    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 0% 98%));
 
     /* Transitions */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
 
-    /* Typography */
+    /* Typography - Executive */
     --font-display: 'Outfit', system-ui, sans-serif;
     --font-heading: 'Outfit', system-ui, sans-serif;
     --font-body: 'Inter', system-ui, sans-serif;
 
-    /* NYC Editorial specific variables */
-    --section-padding: clamp(4rem, 8vw, 8rem);  /* 64px to 128px responsive */
+    /* Layout variables */
+    --section-padding: clamp(3rem, 6vw, 6rem);
     --content-width: 1200px;
+    --header-height: 4rem;
+    --mobile-nav-height: 4.5rem;
     
-    /* Gradients and effects - Updated for purple */
-    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 98%), hsl(0 0% 96%));
-    --shadow-elegant: 0 10px 30px -10px hsl(287 45% 55% / 0.1);
-    --shadow-glow: 0 0 40px hsl(287 45% 55% / 0.2);
-    --glass-bg: 0 0% 100% / 0.8;
+    /* Effects */
+    --shadow-elegant: 0 8px 24px -8px hsl(270 50% 28% / 0.15);
+    --shadow-glow: 0 0 32px hsl(270 50% 28% / 0.15);
+    --glass-bg: 0 0% 100% / 0.85;
 
-    /* Sidebar colors - Updated for purple */
-    --sidebar-background: 0 0% 96%;
-    --sidebar-foreground: 0 0% 45%;
-    --sidebar-primary: 287 45% 55%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 0 0% 90%;
-    --sidebar-accent-foreground: 0 0% 6.7%;
-    --sidebar-border: 0 0% 90%;
-    --sidebar-ring: 287 45% 55%;
+    /* Sidebar colors */
+    --sidebar-background: 0 0% 97%;
+    --sidebar-foreground: 0 0% 40%;
+    --sidebar-primary: 270 50% 28%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 94%;
+    --sidebar-accent-foreground: 0 0% 8%;
+    --sidebar-border: 0 0% 92%;
+    --sidebar-ring: 270 50% 28%;
   }
 
   .dark {
-    /* Dark theme colors - keeping same purple palette */
-    --background: 0 0% 6.7%;          /* #111111 - Dark background */
-    --foreground: 0 0% 98%;           /* #FAFAFA - Light text */
+    /* Dark theme - Executive dark mode */
+    --background: 0 0% 6%;
+    --foreground: 0 0% 96%;
 
-    --card: 0 0% 8%;                 /* #141414 - Dark cards */
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 96%;
 
     --popover: 0 0% 8%;
-    --popover-foreground: 0 0% 98%;
+    --popover-foreground: 0 0% 96%;
 
-    --primary: 287 45% 55%;          /* Same purple accent */
-    --primary-light: 287 50% 65%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 270 45% 55%;
+    --primary-light: 270 50% 65%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 12%;            /* #1F1F1F - Dark muted backgrounds */
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 96%;
 
-    --muted: 0 0% 12%;               /* #1F1F1F - Dark muted backgrounds */
-    --muted-foreground: 0 0% 60%;    /* #999999 - Dark secondary text */
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 55%;
 
-    --accent: 0 0% 12%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 0 0% 14%;
+    --accent-foreground: 0 0% 96%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 62% 35%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 15%;              /* #262626 - Dark borders */
-    --input: 0 0% 12%;
-    --ring: 287 45% 55%;
+    --border: 0 0% 16%;
+    --input: 0 0% 14%;
+    --ring: 270 45% 55%;
     
-    /* Dark theme specific overrides */
-    --glass-bg: 0 0% 8% / 0.8;
-    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 6.7%), hsl(0 0% 12%));
+    --glass-bg: 0 0% 8% / 0.9;
+    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 6%), hsl(0 0% 10%));
+    --gradient-primary: linear-gradient(135deg, hsl(270 45% 55%), hsl(270 50% 65%));
     
-    --sidebar-background: 0 0% 12%;
-    --sidebar-foreground: 0 0% 60%;
-    --sidebar-primary: 287 45% 55%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 0 0% 15%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 287 45% 55%;
+    --sidebar-background: 0 0% 8%;
+    --sidebar-foreground: 0 0% 55%;
+    --sidebar-primary: 270 45% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 14%;
+    --sidebar-accent-foreground: 0 0% 96%;
+    --sidebar-border: 0 0% 16%;
+    --sidebar-ring: 270 45% 55%;
   }
 }
 
@@ -138,21 +140,23 @@ Clean, professional, generous whitespace with sophisticated typography
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
   }
 
-  /* Typography Classes */
+  /* Typography Classes - Executive Grade */
   .font-display { 
     font-family: 'Outfit', system-ui, sans-serif; 
-    font-weight: 700; 
-    letter-spacing: -0.02em; 
+    font-weight: 800; 
+    letter-spacing: -0.025em; 
   }
 
   .font-heading { 
     font-family: 'Outfit', system-ui, sans-serif; 
     font-weight: 600; 
-    letter-spacing: -0.01em; 
+    letter-spacing: -0.015em; 
   }
 
   .font-body { 
@@ -160,53 +164,73 @@ Clean, professional, generous whitespace with sophisticated typography
     font-optical-sizing: auto; 
   }
 
-  /* NYC Editorial Typography Hierarchy */
+  /* Executive Typography Hierarchy */
   .headline-xl {
-    font-size: clamp(2.25rem, 4vw, 4rem);
-    font-weight: 700;
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 800;
     line-height: 1.1;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
     text-wrap: balance;
   }
 
   .headline-lg {
-    font-size: clamp(1.875rem, 3vw, 3rem);
-    font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: -0.01em;
+    font-size: clamp(1.5rem, 3vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
     text-wrap: balance;
   }
 
   .headline-md {
-    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    font-size: clamp(1.25rem, 2vw, 1.75rem);
     font-weight: 600;
-    line-height: 1.3;
-    letter-spacing: -0.01em;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
     text-wrap: balance;
   }
 
   .body-lg {
     font-size: 1.125rem;
-    line-height: 1.6;
+    line-height: 1.7;
     font-weight: 400;
   }
 
   .body-md {
     font-size: 1rem;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  .body-sm {
+    font-size: 0.875rem;
     line-height: 1.5;
     font-weight: 400;
   }
 
-/* Animations */
+/* Animations - Refined, purposeful */
 @keyframes fadeInUp { 
-  from { opacity: 0; transform: translateY(30px); } 
+  from { opacity: 0; transform: translateY(16px); } 
   to { opacity: 1; transform: translateY(0); } 
 }
 
-@keyframes confetti { 
-  0% { transform: scale(.8) rotate(0); opacity: 0; } 
-  50% { transform: scale(1.1) rotate(5deg); opacity: 1; } 
-  100% { transform: scale(1) rotate(0); opacity: 1; } 
+@keyframes fadeIn { 
+  from { opacity: 0; } 
+  to { opacity: 1; } 
+}
+
+@keyframes scaleIn { 
+  from { opacity: 0; transform: scale(0.96); } 
+  to { opacity: 1; transform: scale(1); } 
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes accordion-down { 
@@ -219,75 +243,55 @@ Clean, professional, generous whitespace with sophisticated typography
   to { height: 0 } 
 }
 
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes checkmark {
+  0% { stroke-dashoffset: 24; }
+  100% { stroke-dashoffset: 0; }
 }
 
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes scale-in {
-  from {
-    transform: scale(0.95);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-@keyframes glow-pulse {
-  0%, 100% {
-    box-shadow: 0 0 20px hsl(287 45% 55% / 0.3);
-  }
-  50% {
-    box-shadow: 0 0 40px hsl(287 45% 55% / 0.6);
-  }
-}
-
-.animate-fade-in-up { animation: fadeInUp .6s ease-out forwards; }
-.confetti-burst { animation: confetti .8s ease-out; }
-.animate-accordion-down { animation: accordion-down .2s ease-out; }
-.animate-accordion-up { animation: accordion-up .2s ease-out; }
+.animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+.animate-scale-in { animation: scaleIn 0.2s ease-out forwards; }
+.animate-slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-slide-in { animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-accordion-down { animation: accordion-down 0.2s ease-out; }
+.animate-accordion-up { animation: accordion-up 0.2s ease-out; }
+.animate-checkmark { animation: checkmark 0.3s ease-out forwards; }
 
 .transition-smooth { transition: var(--transition-smooth); }
 .transition-bounce { transition: var(--transition-bounce); }
 
+/* Interaction States - Subtle, refined */
 .hover-lift { 
   transition: var(--transition-smooth); 
 }
 .hover-lift:hover { 
-  transform: translateY(-2px) scale(1.01); 
-  box-shadow: var(--shadow-lg); 
+  transform: translateY(-2px); 
+  box-shadow: var(--shadow-md); 
 }
 
 .hover-scale { 
-  transition: var(--transition-bounce); 
+  transition: var(--transition-smooth); 
 }
 .hover-scale:hover { 
   transform: scale(1.02); 
 }
 
-/* Subtle dotted background utility */
+/* Touch targets - Mobile-first */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Background patterns */
 .bg-dots {
-  background-image: radial-gradient(circle at 2px 2px, hsl(var(--primary) / 0.1) 1px, transparent 0);
-  background-size: 60px 60px;
+  background-image: radial-gradient(circle at 1px 1px, hsl(var(--primary) / 0.06) 1px, transparent 0);
+  background-size: 40px 40px;
+}
+
+.bg-grid {
+  background-image: linear-gradient(hsl(var(--border)) 1px, transparent 1px),
+                    linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
 
   /* Layout Utilities */
@@ -298,42 +302,49 @@ Clean, professional, generous whitespace with sophisticated typography
   .container-width {
     max-width: var(--content-width);
     margin: 0 auto;
-    padding: 0 1.5rem;
+    padding: 0 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .container-width {
+      padding: 0 1.5rem;
+    }
+  }
+
+  /* Safe area for mobile */
+  .safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+  }
+
+  .safe-top {
+    padding-top: max(env(safe-area-inset-top), 1rem);
   }
 
   /* Component Patterns */
   .card-hover {
-    @apply transition-all duration-300;
+    @apply transition-all duration-200;
   }
 
   .card-hover:hover {
-    transform: scale(1.01);
-    box-shadow: var(--shadow-elegant);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
   }
 
-  .link-underline {
-    @apply relative inline-block;
-  }
-
-  .link-underline::after {
-    content: '';
-    @apply absolute bottom-0 left-0 w-full h-px bg-current scale-x-0 origin-right transition-transform duration-300;
-  }
-
-  .link-underline:hover::after {
-    @apply scale-x-100 origin-left;
-  }
-
-  /* Glass morphism effect */
+  /* Glass morphism - More subtle */
   .glass {
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
   /* Focus states for accessibility */
   *:focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Button touch feedback */
+  .btn-touch:active {
+    transform: scale(0.98);
   }
 
   /* Reduced motion support */
@@ -343,5 +354,18 @@ Clean, professional, generous whitespace with sophisticated typography
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+  }
+
+  /* Mobile-first bottom navigation spacing */
+  .has-bottom-nav {
+    padding-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Executive link style */
+  .link-subtle {
+    @apply text-foreground-secondary transition-colors;
+  }
+  .link-subtle:hover {
+    @apply text-foreground;
   }
 }
