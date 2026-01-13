@@ -28,3 +28,12 @@ verify_jwt = false
 
 [functions.generate-user-insights]
 verify_jwt = false
+
+[functions.transcribe]
+verify_jwt = false
+
+[functions.parse-voice-log]
+verify_jwt = false
+
+[functions.parse-onboarding]
+verify_jwt = false

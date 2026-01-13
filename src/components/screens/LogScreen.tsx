@@ -306,7 +306,6 @@ export const LogScreen = () => {
                 repeat: Infinity,
                 ease: 'easeInOut' as const,
               }}
-              animate="animate"
               className={cn(
                 "w-24 h-24 rounded-full",
                 "bg-destructive flex items-center justify-center",
