@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          activity_type: string
+          client_id: string | null
+          created_at: string
+          created_via_voice: boolean | null
+          duration_minutes: number | null
+          id: string
+          logged_at: string
+          notes: string | null
+          revenue: number | null
+          summary: string
+          transcript_raw: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_type?: string
+          client_id?: string | null
+          created_at?: string
+          created_via_voice?: boolean | null
+          duration_minutes?: number | null
+          id?: string
+          logged_at?: string
+          notes?: string | null
+          revenue?: number | null
+          summary: string
+          transcript_raw?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          client_id?: string | null
+          created_at?: string
+          created_via_voice?: boolean | null
+          duration_minutes?: number | null
+          id?: string
+          logged_at?: string
+          notes?: string | null
+          revenue?: number | null
+          summary?: string
+          transcript_raw?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_conversations: {
         Row: {
           context: Json | null
@@ -81,6 +137,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      clients: {
+        Row: {
+          color: string | null
+          created_at: string
+          engagement_type: string | null
+          hours_weekly: number | null
+          id: string
+          last_activity_date: string | null
+          monthly_revenue_target: number | null
+          name: string
+          notes: string | null
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          engagement_type?: string | null
+          hours_weekly?: number | null
+          id?: string
+          last_activity_date?: string | null
+          monthly_revenue_target?: number | null
+          name: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          engagement_type?: string | null
+          hours_weekly?: number | null
+          id?: string
+          last_activity_date?: string | null
+          monthly_revenue_target?: number | null
+          name?: string
+          notes?: string | null
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       conversation_sessions: {
         Row: {
@@ -1072,6 +1173,60 @@ export type Database = {
           session_quality_score?: number | null
           started_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_summaries: {
+        Row: {
+          ai_summary: string | null
+          created_at: string
+          generated_at: string
+          highlights: string[] | null
+          id: string
+          insights: Json | null
+          top_clients: Json | null
+          total_activities: number | null
+          total_hours: number | null
+          total_revenue: number | null
+          user_id: string
+          viewed: boolean | null
+          viewed_at: string | null
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          created_at?: string
+          generated_at?: string
+          highlights?: string[] | null
+          id?: string
+          insights?: Json | null
+          top_clients?: Json | null
+          total_activities?: number | null
+          total_hours?: number | null
+          total_revenue?: number | null
+          user_id: string
+          viewed?: boolean | null
+          viewed_at?: string | null
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          ai_summary?: string | null
+          created_at?: string
+          generated_at?: string
+          highlights?: string[] | null
+          id?: string
+          insights?: Json | null
+          top_clients?: Json | null
+          total_activities?: number | null
+          total_hours?: number | null
+          total_revenue?: number | null
+          user_id?: string
+          viewed?: boolean | null
+          viewed_at?: string | null
+          week_end?: string
+          week_start?: string
         }
         Relationships: []
       }
