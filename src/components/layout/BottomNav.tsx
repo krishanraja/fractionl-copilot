@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
-import { Home, Plus, Clock } from 'lucide-react';
+import { Home, Plus, Clock, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type TabId = 'pulse' | 'log' | 'history' | 'settings';
+export type TabId = 'pulse' | 'log' | 'history' | 'network' | 'settings';
 
 interface BottomNavProps {
   currentTab: TabId;
@@ -13,6 +13,7 @@ const navItems: { id: TabId; label: string; icon: typeof Home }[] = [
   { id: 'pulse', label: 'Pulse', icon: Home },
   { id: 'log', label: 'Log', icon: Plus },
   { id: 'history', label: 'History', icon: Clock },
+  { id: 'network', label: 'Network', icon: Users },
 ];
 
 export const BottomNav = ({ currentTab, onTabChange }: BottomNavProps) => {

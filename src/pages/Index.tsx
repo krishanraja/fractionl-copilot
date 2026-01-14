@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AppShell } from '@/components/layout';
-import { PulseScreen, LogScreen, HistoryScreen, SettingsScreen } from '@/components/screens';
+import { PulseScreen, LogScreen, HistoryScreen, SettingsScreen, NetworkScreen } from '@/components/screens';
 import type { TabId } from '@/components/layout/BottomNav';
 
 const Index = () => {
@@ -14,6 +14,8 @@ const Index = () => {
         return <LogScreen />;
       case 'history':
         return <HistoryScreen />;
+      case 'network':
+        return <NetworkScreen />;
       case 'settings':
         return <SettingsScreen />;
       default:
