@@ -1176,6 +1176,221 @@ export type Database = {
         }
         Relationships: []
       }
+      skills: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      talent_contacts: {
+        Row: {
+          availability_status: string | null
+          created_at: string
+          email: string | null
+          id: string
+          linkedin_url: string | null
+          name: string
+          phone: string | null
+          photo_url: string | null
+          portfolio_url: string | null
+          rate_max: number | null
+          rate_min: number | null
+          rate_type: string | null
+          specialty_summary: string | null
+          trust_rating: number | null
+          updated_at: string
+          user_id: string
+          working_style_notes: string | null
+        }
+        Insert: {
+          availability_status?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          linkedin_url?: string | null
+          name: string
+          phone?: string | null
+          photo_url?: string | null
+          portfolio_url?: string | null
+          rate_max?: number | null
+          rate_min?: number | null
+          rate_type?: string | null
+          specialty_summary?: string | null
+          trust_rating?: number | null
+          updated_at?: string
+          user_id: string
+          working_style_notes?: string | null
+        }
+        Update: {
+          availability_status?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          linkedin_url?: string | null
+          name?: string
+          phone?: string | null
+          photo_url?: string | null
+          portfolio_url?: string | null
+          rate_max?: number | null
+          rate_min?: number | null
+          rate_type?: string | null
+          specialty_summary?: string | null
+          trust_rating?: number | null
+          updated_at?: string
+          user_id?: string
+          working_style_notes?: string | null
+        }
+        Relationships: []
+      }
+      talent_opportunities: {
+        Row: {
+          created_at: string
+          id: string
+          opportunity_id: string
+          talent_contact_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          opportunity_id: string
+          talent_contact_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          opportunity_id?: string
+          talent_contact_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_opportunities_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_opportunities_talent_contact_id_fkey"
+            columns: ["talent_contact_id"]
+            isOneToOne: false
+            referencedRelation: "talent_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_referrals: {
+        Row: {
+          client_name: string | null
+          commission_fee: number | null
+          created_at: string
+          estimated_value: number | null
+          follow_up_date: string | null
+          id: string
+          notes: string | null
+          outcome_delivered: boolean | null
+          outcome_notes: string | null
+          project_type: string | null
+          referred_date: string
+          talent_contact_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_name?: string | null
+          commission_fee?: number | null
+          created_at?: string
+          estimated_value?: number | null
+          follow_up_date?: string | null
+          id?: string
+          notes?: string | null
+          outcome_delivered?: boolean | null
+          outcome_notes?: string | null
+          project_type?: string | null
+          referred_date: string
+          talent_contact_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_name?: string | null
+          commission_fee?: number | null
+          created_at?: string
+          estimated_value?: number | null
+          follow_up_date?: string | null
+          id?: string
+          notes?: string | null
+          outcome_delivered?: boolean | null
+          outcome_notes?: string | null
+          project_type?: string | null
+          referred_date?: string
+          talent_contact_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_referrals_talent_contact_id_fkey"
+            columns: ["talent_contact_id"]
+            isOneToOne: false
+            referencedRelation: "talent_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_skills: {
+        Row: {
+          created_at: string
+          id: string
+          skill_id: string
+          talent_contact_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          skill_id: string
+          talent_contact_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          skill_id?: string
+          talent_contact_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_skills_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_skills_talent_contact_id_fkey"
+            columns: ["talent_contact_id"]
+            isOneToOne: false
+            referencedRelation: "talent_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       weekly_summaries: {
         Row: {
           ai_summary: string | null
